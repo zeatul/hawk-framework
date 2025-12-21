@@ -1,0 +1,14 @@
+
+plugins {
+    id 'buildlogic.java-library-conventions'
+}
+
+description = 'Provides common utilities, constants, and enums (similar to spring-core).'
+
+dependencies {
+    api libs.jsr305
+    api libs.bundles.jackson
+    api libs.guava;
+    api libs.slf4j.api
+}
+

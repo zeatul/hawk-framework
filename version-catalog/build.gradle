@@ -1,0 +1,55 @@
+plugins {
+    id 'version-catalog'
+    id 'maven-publish'
+}
+
+group = 'io.github.zeatul'
+version = '1.0.0-SNAPSHOT'
+
+// Definition of a catalog
+catalog {
+    versionCatalog {
+        from files("src/main/resources/libs.versions.toml")
+    }
+}
+
+publishing {
+    publications {
+        versionCatalogs(MavenPublication) {
+            from components.versionCatalog   // The publication is specified as a version catalog.
+
+            pom {
+                name = project.name
+                description = project.description
+                url = 'https://github.com/zeatul/hawk'
+                licenses {
+                    license {
+                        name = 'Apache-2.0'
+                        url = 'https://opensource.org/licenses/Apache-2.0'
+                    }
+                }
+                developers {
+                    developer {
+                        name = 'Hawk'
+                        email = 'zeatul@qq.com'
+                    }
+                }
+                scm {
+                    connection = 'scm:git:git://github.com/zeatul/hawk.git'
+                    developerConnection = 'scm:git:ssh://github.com/zeatul/hawk.git'
+                    url = 'https://github.com/zeatul/hawk'
+                }
+            }
+        }
+    }
+
+    repositories {
+        mavenLocal()
+        //  The Maven Central Repository only accepts artifacts in the standard Maven format (JAR + POM).
+        //  Regardless of the configuration language used by a project,
+        //  compliant publication packages must ultimately be generated via Maven or Gradle.
+
+    }
+
+}
+

@@ -1,0 +1,10 @@
+plugins {
+    id 'buildlogic.java-library-conventions'
+}
+
+description = 'Provides definitions for: data access layer APIs, table/field extensions, and exception specifications.'
+
+dependencies {
+    implementation project(':hawk-core')
+    implementation(libs.spring.tx)
+}

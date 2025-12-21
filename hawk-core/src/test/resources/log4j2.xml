@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="error" monitorInterval="30">
+
+	<Properties>
+		<Property name="MODULE_NAME" value="got-framework-core"/>
+		<Property name="DEFAULT_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS}[${MODULE_NAME}][%c{1.}][%L][%-5level] - %msg%n"/>
+	</Properties>
+
+	<Appenders>
+		<Console name="stdout">
+	      <PatternLayout pattern="${DEFAULT_PATTERN}"/>
+	    </Console>
+	</Appenders>
+	
+	<Loggers>
+		<Logger name="org.gotframework" additivity="false" level="debug">
+			<AppenderRef ref="stdout" />
+		</Logger>
+		
+		<Root level="error">
+			<AppenderRef ref="stdout" />
+		</Root>
+	</Loggers>
+
+</Configuration>
