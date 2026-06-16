@@ -27,14 +27,32 @@ import static glz.hawkframework.core.support.ArgumentSupport.argument;
 public class DefaultPage implements Page {
 
     private long pageIndex = 0;
+
     private long pageSize = 1;
 
     public DefaultPage() {
     }
 
+    /**
+     * Creates a {@link Page} instance.
+     *
+     * @param pageIndex the index of page. The index starts from {@code 1}
+     * @param pageSize  the size of page. It must be greater than zero.
+     */
     public DefaultPage(long pageIndex, long pageSize) {
         setPageIndex(pageIndex);
         setPageSize(pageSize);
+    }
+
+    /**
+     * Obtains a {@link Page} instance.
+     *
+     * @param pageIndex the index of page. The index starts from {@code 1}
+     * @param pageSize  the size of page. It must be greater than zero.
+     * @return a {@link Page} instance
+     */
+    public static DefaultPage page(long pageIndex, long pageSize) {
+        return new DefaultPage(pageIndex, pageSize);
     }
 
     @Override

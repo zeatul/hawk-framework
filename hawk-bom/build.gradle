@@ -1,5 +1,5 @@
-import groovy.toml.TomlSlurper
 import groovy.json.JsonOutput
+import groovy.toml.TomlSlurper
 
 buildscript {
     repositories {
@@ -16,9 +16,10 @@ plugins {
     id 'java-platform'
     id 'maven-publish'
     id 'signing'
+    id("com.gradleup.nmcp.aggregation").version("1.2.0")
 }
 
-version = '1.0.0-SNAPSHOT'
+version = '1.0.1'
 group = 'io.github.zeatul'
 
 description = 'Bill of Materials for Hawk Project Serials'
@@ -119,7 +120,7 @@ publishing {
                 }
                 developers {
                     developer {
-                        name = 'Hawk'
+                        name = 'Zhang Peng'
                         email = 'zeatul@qq.com'
                     }
                 }
@@ -173,3 +174,20 @@ signing {
     required { !version.endsWith("SNAPSHOT") && gradle.taskGraph.hasTask("publish") }
     sign publishing.publications.hawkBom
 }
+
+nmcpAggregation {
+    centralPortal {
+        username = project.username
+        password = project.password
+        publishingType = "AUTOMATIC"
+    }
+
+    // Publish all projects that apply the 'maven-publish' plugin
+    publishAllProjectsProbablyBreakingProjectIsolation()
+}
+
+
+
+// Call publishAggregationToCentralPortal to publish the aggregation
+// Call publishAggregationToCentralPortalSnapshots to publish to the snapshots
+// Call nmcpPublishAggregationToMavenLocal to publish to the maven local

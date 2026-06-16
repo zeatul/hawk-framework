@@ -16,8 +16,6 @@
 
 package glz.hawkframework.dao.process;
 
-import java.util.Map;
-
 /**
  * This interface is responsible for
  *
@@ -25,24 +23,24 @@ import java.util.Map;
  */
 public interface UpdateProcessor {
 
-    public final static String RECORD_VERSION = "UPDATE_PROCESSOR_RECORD_VERSION";
-    public final static String UPDATE_BY_FIELD_OBJECT = "UPDATE_PROCESSOR_UPDATE_BY_FIELD_OBJECT";
-    public final static String UPDATE_BY_COLUMN_OBJECT = "UPDATE_PROCESSOR_UPDATE_BY_COLUMN_OBJECT";
-    public final static String RECORD_ID = "UPDATE_PROCESSOR_RECORD_ID";
+//    public final static String RECORD_VERSION = "UPDATE_PROCESSOR_RECORD_VERSION";
+//    public final static String UPDATE_BY_FIELD_OBJECT = "UPDATE_PROCESSOR_UPDATE_BY_FIELD_OBJECT";
+//    public final static String UPDATE_BY_COLUMN_OBJECT = "UPDATE_PROCESSOR_UPDATE_BY_COLUMN_OBJECT";
+//    public final static String RECORD_ID = "UPDATE_PROCESSOR_RECORD_ID";
 
     /**
      * Execute before update
      *
-     * @param params contains all the parameters of the update method
+     * @param updateParameter contains all the parameters of the update method
      */
-    default void beforeUpdate(Map<String, Object> params) {
+    default void beforeUpdate(UpdateParameter updateParameter) {
     }
 
     /**
      * Execute after update
      *
-     * @param params contains all the parameters of the update method
+     * @param updateParameter contains all the parameters of the update method
      */
-    default void afterUpdate(Map<String, Object> params) {
+    default void afterUpdate(UpdateParameter updateParameter) {
     }
 }

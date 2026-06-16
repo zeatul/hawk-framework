@@ -15,6 +15,9 @@ includeBuild("hawk-bom")
 
 include 'hawk-core'
 include 'hawk-dao-base'
+include 'hawk-validator'
+include 'hawk-batch'
+include 'hawk-excel'
 
 dependencyResolutionManagement {
 

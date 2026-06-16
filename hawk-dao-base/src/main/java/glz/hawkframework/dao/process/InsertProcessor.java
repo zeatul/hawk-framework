@@ -16,8 +16,6 @@
 
 package glz.hawkframework.dao.process;
 
-import java.util.List;
-
 /**
  * This interface is responsible for
  *
@@ -25,22 +23,11 @@ import java.util.List;
  */
 public interface InsertProcessor {
 
-    default void beforeInsert(Object po) {
+    default void beforeInsert(InsertParameter insertParameter) {
     }
 
-    default void beforeInsert(List<?> pos) {
-        if (pos != null) {
-            pos.forEach(this::beforeInsert);
-        }
+    default void afterInsert(InsertParameter insertParameter) {
     }
 
-    default void afterInsert(Object po) {
-    }
-
-    default void afterInsert(List<?> pos) {
-        if (pos != null) {
-            pos.forEach(this::afterInsert);
-        }
-    }
 
 }

@@ -25,7 +25,7 @@ import java.util.function.Supplier;
  *
  * @author Hawk
  */
-public class LogicSupport {
+public abstract class LogicSupport {
 
     /**
      * If {@code 'object'} is not null, then execute {@code 'consumer'} synchronously, else do nothing.
@@ -52,7 +52,6 @@ public class LogicSupport {
         }
    }
 
-
     /**
      * If the result of {@code booleanExpression} is {@code false}, then throws the given exception.
      *
@@ -75,6 +74,32 @@ public class LogicSupport {
      */
     public static <K extends Throwable> void throwIfFalse(@Nonnull Supplier<Boolean> booleanExpressionSupplier, @Nonnull Supplier<? extends K> exceptionSupplier) throws K {
         if (!booleanExpressionSupplier.get()) {
+            throw exceptionSupplier.get();
+        }
+    }
+
+    /**
+     * If the result of {@code booleanExpression} is {@code true}, then throws the given exception.
+     *
+     * @param <K>               the type of exception to throw
+     * @param booleanExpression the required boolean expression
+     * @param exceptionSupplier the supplier to return an exception to throw. (Never {@code null})
+     */
+    public static <K extends Throwable> void throwIfTrue(boolean booleanExpression, @Nonnull Supplier<? extends K> exceptionSupplier) throws K {
+        if (booleanExpression) {
+            throw exceptionSupplier.get();
+        }
+    }
+
+    /**
+     * If the result of {@code booleanExpression} is {@code true}, then throws the given exception.
+     *
+     * @param <K>                       the type of exception to throw
+     * @param booleanExpressionSupplier the supplier to return a boolean result.
+     * @param exceptionSupplier         the supplier to return an exception to throw.
+     */
+    public static <K extends Throwable> void throwIfTrue(@Nonnull Supplier<Boolean> booleanExpressionSupplier, @Nonnull Supplier<? extends K> exceptionSupplier) throws K {
+        if (booleanExpressionSupplier.get()) {
             throw exceptionSupplier.get();
         }
     }

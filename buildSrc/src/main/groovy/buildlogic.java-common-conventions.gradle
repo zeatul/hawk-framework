@@ -20,7 +20,9 @@ java {
 }
 
 dependencies {
-    testImplementation libs.bundles.test
+    testImplementation libs.junit.jupiter
+    testImplementation libs.assertj.core
+    testRuntimeOnly libs.junit.platform.launcher
 }
 
 tasks.named('test') {
@@ -56,13 +58,13 @@ publishing {
                     }
                     developers {
                         developer {
-                            name = 'Hawk'
+                            name = 'Zhang Peng'
                             email = 'zeatul@qq.com'
                         }
                     }
                     scm {
                         connection = 'scm:git:git://github.com/zeatul/hawk-framework.git'
-                        developerConnection = 'scm:git:ssh://github.com/zeatul/hawk-framework.git'
+                        developerConnection = 'scm:git:git@github.com:zeatul/hawk-framework.git'
                         url = 'https://github.com/zeatul/hawk-framework'
                     }
                 }

@@ -21,6 +21,7 @@ import javax.annotation.Nullable;
 import java.util.Arrays;
 
 import static glz.hawkframework.core.support.ArgumentSupport.argNotNull;
+import static glz.hawkframework.core.support.ArgumentSupport.argument;
 
 /**
  * Miscellaneous {@link String} utility methods.
@@ -196,12 +197,12 @@ public abstract class StringHelper {
     }
 
     /**
-     * Obtains a {@code String} with c repeated n times.
+     * Obtains a {@code String} with c repeated 'n' times.
      * <p>If n is 0, return {@code ""}.</p>
      *
      * @param c the char to be repeated.
      * @param n the repeat times.
-     * @return s {@code String}.
+     * @return a {@code String}.
      */
     public static String repeatChar(char c, int n) {
         argNotNull(c, "c");
@@ -217,5 +218,29 @@ public abstract class StringHelper {
         }
 
         throw new IllegalArgumentException("The parameter: 'n' can't be less than 0.");
+    }
+
+    /**
+     * Obtains a {@code String} with str repeated 'n' times.
+     * <p>If n is 0, return {@code ""}.</p>
+     *
+     * @param str the char to be repeated.
+     * @param n   the repeat times.
+     * @return a {@code String}.
+     */
+    public static String repeatStr(String str, int n) {
+        argNotNull(str, "str");
+        argument(n, i -> i > 0, i -> "The parameter: 'n' can't be less than 0.");
+        StringBuilder sb = new StringBuilder();
+        if (n > 0) {
+            for (int i = 0; i < n; i++) {
+                sb.append(str);
+            }
+            return sb.toString();
+        } else if (n == 0) {
+            return "";
+        } else {
+            throw new IllegalArgumentException("The parameter: 'n' can't be less than 0.");
+        }
     }
 }

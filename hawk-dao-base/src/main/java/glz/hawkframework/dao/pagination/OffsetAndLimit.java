@@ -9,13 +9,15 @@ public interface OffsetAndLimit {
 
     /**
      * offset must be greater than or equal to {@code 0}.
-     * @return
+     *
+     * @return offset
      */
     long getOffset();
 
     /**
      * limit must be greater than or equal to {@code 1}.
-     * @return
+     *
+     * @return limit
      */
     long getLimit();
 
