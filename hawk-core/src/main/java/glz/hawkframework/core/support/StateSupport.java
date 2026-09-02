@@ -45,6 +45,7 @@ public class StateSupport {
      * @param messageSupplier the supplier to provide the message for the exception.
      * @return the input parameter 'arg' directly
      */
+    @Nonnull
     public static <T> T stateNotNull(@Nullable T arg, @Nonnull Supplier<String> messageSupplier) throws IllegalStateException {
         if (arg == null) {
             throw new IllegalStateException(messageSupplier.get());
@@ -65,6 +66,7 @@ public class StateSupport {
      * @param messageSupplier the supplier to provide the message for the exception.
      * @return the input parameter 'arg' directly
      */
+    @Nonnull
     public static <T> T stateNotEmpty(@Nullable T arg, @Nonnull Supplier<String> messageSupplier) throws IllegalStateException {
         if (ObjectHelper.isEmpty(arg)) {
             throw new IllegalStateException(messageSupplier.get());
@@ -83,6 +85,7 @@ public class StateSupport {
      * @param messageSupplier the supplier to provide the message for the exception.
      * @return the input parameter 'arg' directly
      */
+    @Nonnull
     public static String stateNotBlank(@Nullable String arg, @Nonnull Supplier<String> messageSupplier) throws IllegalStateException {
         if (StringHelper.isBlank(arg)) {
             throw new IllegalStateException(messageSupplier.get());

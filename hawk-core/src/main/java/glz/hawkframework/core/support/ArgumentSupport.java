@@ -52,6 +52,7 @@ public class ArgumentSupport {
      * @param arg the parameter to check.
      * @return the input parameter 'arg' directly
      */
+    @Nonnull
     public static <T> T argNotNull(T arg) throws IllegalArgumentException {
         if (arg == null) {
             throw new IllegalArgumentException(NOT_NULL);
@@ -68,6 +69,7 @@ public class ArgumentSupport {
      * @param argName the name of input parameter 'arg'
      * @return the input parameter 'arg' directly
      */
+    @Nonnull
     public static <T> T argNotNull(T arg, @Nonnull String argName) throws IllegalArgumentException {
         if (arg == null) {
             throw new IllegalArgumentException(String.format(NOT_NULL_WITH_PARAMETER, argName));
@@ -141,6 +143,7 @@ public class ArgumentSupport {
      * @param messageSupplier the supplier to provide the message for the exception.
      * @return the input parameter 'arg' directly
      */
+    @Nonnull
     public static <T> T argNotNull(T arg, @Nonnull Supplier<String> messageSupplier) throws IllegalArgumentException {
         if (arg == null) {
             throw new IllegalArgumentException(messageSupplier.get());
@@ -190,6 +193,7 @@ public class ArgumentSupport {
      * @param arg the parameter to check.
      * @return the input parameter 'arg' directly
      */
+    @Nonnull
     public static <T> T argNotEmpty(T arg) {
         if (ObjectHelper.isEmpty(arg)) {
             throw new IllegalArgumentException(NOT_EMPTY);
@@ -209,6 +213,7 @@ public class ArgumentSupport {
      * @param argName the name of input parameter 'arg'
      * @return the input parameter 'arg' directly
      */
+    @Nonnull
     public static <T> T argNotEmpty(T arg, @Nonnull String argName) throws IllegalArgumentException {
         if (ObjectHelper.isEmpty(arg)) {
             throw new IllegalArgumentException(String.format(NOT_EMPTY_WITH_PARAMETER, argName));
@@ -264,6 +269,7 @@ public class ArgumentSupport {
      * @param messageSupplier the supplier to provide the message for the exception.
      * @return the input parameter 'arg' directly
      */
+    @Nonnull
     public static <T> T argNotEmpty(T arg, @Nonnull Supplier<String> messageSupplier) throws IllegalArgumentException {
         if (ObjectHelper.isEmpty(arg)) {
             throw new IllegalArgumentException(messageSupplier.get());
@@ -280,6 +286,7 @@ public class ArgumentSupport {
      * @param arg the parameter to check.
      * @return the input parameter 'arg' directly
      */
+    @Nonnull
     public static String argNotBlank(String arg) throws IllegalArgumentException {
         if (ObjectHelper.isEmpty(arg)) {
             throw new IllegalArgumentException(NOT_BLANK);
@@ -297,6 +304,7 @@ public class ArgumentSupport {
      * @param argName the name of input parameter 'arg'
      * @return the input parameter 'arg' directly
      */
+    @Nonnull
     public static String argNotBlank(String arg, @Nonnull String argName) throws IllegalArgumentException {
         if (StringHelper.isBlank(arg)) {
             throw new IllegalArgumentException(String.format(NOT_BLANK_WITH_PARAMETER, argName));
@@ -314,6 +322,7 @@ public class ArgumentSupport {
      * @param messageSupplier the supplier to provide the message for the exception.
      * @return the input parameter 'arg' directly
      */
+    @Nonnull
     public static String argNotBlank(String arg, @Nonnull Supplier<String> messageSupplier) throws IllegalArgumentException {
         if (StringHelper.isBlank(arg)) {
             throw new IllegalArgumentException(messageSupplier.get());

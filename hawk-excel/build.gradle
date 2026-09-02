@@ -1,0 +1,11 @@
+plugins {
+    id 'buildlogic.java-library-conventions'
+}
+
+description = 'Wrapper for Apache Poi as a utility toolkit for generating Excel.'
+
+dependencies {
+    api project(':hawk-core')
+    api libs.poi
+    api libs.poi.ooxml
+}

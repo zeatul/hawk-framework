@@ -16,12 +16,13 @@
 
 package glz.hawkframework.core.helper;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.lang.reflect.Array;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 /**
  * Miscellaneous {@link Object} utility methods.
@@ -30,6 +31,9 @@ import java.util.Optional;
  * @author Hawk
  */
 public abstract class ObjectHelper {
+
+    private final static Map<String, Function<Object, Object>> GETTER_MAP = new ConcurrentHashMap<>();
+    private final static Map<String, BiConsumer<Object, Object>> SETTER_MAP = new ConcurrentHashMap<>();
 
     /**
      * Determine if the given objects are equal, returning {@code true} if
@@ -178,4 +182,57 @@ public abstract class ObjectHelper {
         return !isEmpty(array);
     }
 
+    /**
+     * 获取对象属性值
+     *
+     * @param object    对象实例，不可为空
+     * @param fieldName 属性名称，不可为空
+     * @param fieldType 属性值类型，不可为空
+     * @param <T>       属性值类类型
+     * @return 属性值
+     */
+    @SuppressWarnings("unchecked")
+    public static <T> @Nullable T getFieldValue(@Nonnull Object object, @Nonnull String fieldName, @Nonnull Class<T> fieldType) {
+        return (T) getFieldValue(object, fieldName);
+    }
+
+    /**
+     * 获取对象属性值
+     *
+     * @param object    对象实例，不可为空
+     * @param fieldName 属性名称，不可为空
+     * @return 属性值
+     */
+    public static @Nullable Object getFieldValue(@Nonnull Object object, @Nonnull String fieldName) {
+        final Class<?> objectClass = object.getClass();
+        final String key = objectClass.getCanonicalName() + ":" + fieldName;
+        Function<Object, Object> getter = GETTER_MAP.computeIfAbsent(key, k -> LambdaHelper.createGetter(ReflectHelper.getGetter(objectClass, fieldName)));
+        return getter.apply(object);
+    }
+
+    /**
+     * 设置对象属性值
+     *
+     * @param object    对象实例，不可为空
+     * @param fieldName 属性名称，不可为空
+     * @param newValue  新的属性值，为空则将属性的值设为{@code null}
+     * @param valueType 属性值类型，不可为空
+     */
+    public static void setFieldValue(@Nonnull Object object, @Nonnull String fieldName, @Nullable Object newValue, @Nonnull Class<?> valueType) {
+        final Class<?> objectClass = object.getClass();
+        final String key = objectClass.getCanonicalName() + ":" + fieldName;
+        BiConsumer<Object, Object> setter = SETTER_MAP.computeIfAbsent(key, k -> LambdaHelper.createSetter(ReflectHelper.getSetter(objectClass, fieldName, valueType)));
+        setter.accept(object, newValue);
+    }
+
+    /**
+     * 设置对象属性值
+     *
+     * @param object    对象实例，不可为空
+     * @param fieldName 属性名称，不可为空
+     * @param newValue  新的属性值，不可为空
+     */
+    public static void setFieldValue(@Nonnull Object object, @Nonnull String fieldName, @Nonnull Object newValue) {
+        setFieldValue(object, fieldName, newValue, newValue.getClass());
+    }
 }

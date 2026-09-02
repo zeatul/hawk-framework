@@ -5,6 +5,6 @@ plugins {
 description = 'Provides definitions for: data access layer APIs, table/field extensions, and exception specifications.'
 
 dependencies {
-    implementation project(':hawk-core')
-    implementation(libs.spring.tx)
+    api project(':hawk-core')
+    api(libs.spring.tx)
 }

@@ -1,0 +1,9 @@
+plugins {
+    id 'buildlogic.java-library-conventions'
+}
+
+description = 'Batch'
+
+dependencies {
+    api project(':hawk-core')
+}

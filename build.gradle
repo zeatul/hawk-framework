@@ -39,3 +39,11 @@
 //// Call publishAggregationToCentralPortal to publish the aggregation
 //// Call publishAggregationToCentralPortalSnapshots to publish to the snapshots
 //// Call nmcpPublishAggregationToMavenLocal to publish to the maven local
+
+
+allprojects {
+    configurations.configureEach {
+        resolutionStrategy.cacheChangingModulesFor 0, "minutes"
+        resolutionStrategy.cacheDynamicVersionsFor 0, "minutes"
+    }
+}

@@ -16,15 +16,22 @@
 
 package glz.hawkframework.core.enums;
 
+import glz.hawkframework.core.helper.MapHelper;
 
-import glz.hawkframework.core.enums.inf.IValuableEnum;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.util.Map;
+
+import static glz.hawkframework.core.support.ArgumentSupport.argNotBlank;
+import static glz.hawkframework.core.support.ArgumentSupport.argNotNull;
+import static glz.hawkframework.core.support.StateSupport.stateNotNull;
 
 /**
  * {@link NumberBoolean} defines {@code 1} as true and {@code 0} as false.
  *
  * @author Hawk
  */
-public enum NumberBoolean implements IValuableEnum<Integer, NumberBoolean> {
+public enum NumberBoolean {
 
     /**
      * {@code true}
@@ -36,14 +43,40 @@ public enum NumberBoolean implements IValuableEnum<Integer, NumberBoolean> {
      */
     FALSE(0);
 
-    private final Integer value;
+    public final int value;
 
-    private NumberBoolean(Integer value) {
+    private NumberBoolean(int value) {
         this.value = value;
     }
 
-    public Integer getValue() {
-        return this.value;
+    private final static Map<Integer, NumberBoolean> valueMap =
+        MapHelper.<Integer, NumberBoolean>builder()
+            .put(TRUE.value, TRUE)
+            .put(FALSE.value, FALSE)
+            .buildHashMap();
+
+    private final static Map<String, NumberBoolean> nameMap =
+        MapHelper.<String, NumberBoolean>builder()
+            .put(TRUE.name(), TRUE)
+            .put(FALSE.name(), FALSE)
+            .buildHashMap();
+
+    public static @Nullable NumberBoolean fromValue(@Nullable Integer value) {
+        if (value == null) return null;
+        return valueMap.get(value);
+    }
+
+    public static @Nullable NumberBoolean fromName(@Nullable String name) {
+        if (name == null) return null;
+        return nameMap.get(name);
+    }
+
+    public static @Nonnull NumberBoolean parseByValue(@Nonnull Integer value) {
+        return stateNotNull(fromValue(argNotNull(value)), () -> String.format("Found no NumberBoolean with value %d", value));
+    }
+
+    public static @Nonnull NumberBoolean parseByName(@Nonnull String name) {
+        return stateNotNull(fromName(argNotNull(name)), () -> String.format("Found no NumberBoolean named %s", name));
     }
 
 }

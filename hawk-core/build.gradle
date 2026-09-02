@@ -5,10 +5,24 @@ plugins {
 
 description = 'Provides common utilities, constants, and enums (similar to spring-core).'
 
+configurations {
+    configureEach {
+        exclude group: 'org.apache.logging.log4j', module: 'log4j-to-slf4j'
+        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+        exclude group: 'org.apache.logging.log4j', module: 'log4j-slf4j-impl'
+    }
+//    compileClasspath {
+//        exclude group: 'javax.servlet', module: 'servlet-api'
+//    }
+}
+
 dependencies {
     api libs.jsr305
     api libs.bundles.jackson
     api libs.guava;
     api libs.slf4j.api
+
+    testImplementation libs.spring.boot.starter.test
+    testImplementation libs.spring.boot.starter.log4j2
 }
 
