@@ -21,6 +21,7 @@ dependencies {
     api libs.bundles.jackson
     api libs.guava;
     api libs.slf4j.api
+    compileOnly libs.caffeine
 
     testImplementation libs.spring.boot.starter.test
     testImplementation libs.spring.boot.starter.log4j2
