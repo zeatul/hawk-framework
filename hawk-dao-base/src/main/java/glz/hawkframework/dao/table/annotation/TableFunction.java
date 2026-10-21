@@ -21,7 +21,7 @@ import java.lang.annotation.*;
 
 /**
  * This annotation is responsible for
- * <p>被其注解的注解用来提供table相关的功能</p>
+ * <p>Annotations annotated by this annotation are used to provide table-related functionality.</p>
  *
  * @author Zhang Peng
  */

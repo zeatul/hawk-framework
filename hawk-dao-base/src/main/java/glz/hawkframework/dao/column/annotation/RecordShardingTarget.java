@@ -20,9 +20,9 @@ import java.lang.annotation.*;
 
 /**
  * This annotation is responsible for
- * <p>分片字段</p>
+ * <p>Sharding field.</p>
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 @ColumnFunction
 @Target(ElementType.FIELD)

@@ -25,20 +25,20 @@ package glz.hawkframework.core.cache;
 public interface CacheManager<K> {
 
     /**
-     * 删除缓存
-     * @param key 缓存键
+     * Removes a cache entry.
+     * @param key the cache key
      */
     void evict(K key);
 
     /**
-     * 清空所有缓存
+     * Clears all cache entries.
      */
     void clear();
 
     /**
-     * 检查缓存是否存在
-     * @param key 缓存键
-     * @return 是否存在
+     * Checks whether a cache entry exists.
+     * @param key the cache key
+     * @return whether it exists
      */
     boolean exists(K key);
 }

@@ -27,21 +27,18 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
 import static java.lang.annotation.ElementType.*;
-import static java.lang.annotation.ElementType.CONSTRUCTOR;
-import static java.lang.annotation.ElementType.PARAMETER;
-import static java.lang.annotation.ElementType.TYPE_USE;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 /**
- * 这个注解用来校验对象的一组属性的值，符合某种NotNull的条件：
- * <p>至少有一个属性的值不是Null</p>
- * <p>至少有一个属性的值是Null</p>
- * <p>只有一个属性的值不是Null</p>
- * <p>只有一个属性的值是null</p>
- * <p>同时全部不为空</p>
- * <p>同时全部为空</p>
- * <p>同时全部为空或同时全部不为空</p>
- * <p>属性通过全路径名指定，例如a.b.c</p>
+ * This annotation is used to validate the values of a group of fields of an object against some NotNull condition:
+ * <p>At least one field's value is not null.</p>
+ * <p>At least one field's value is null.</p>
+ * <p>Only one field's value is not null.</p>
+ * <p>Only one field's value is null.</p>
+ * <p>All are not null at the same time.</p>
+ * <p>All are null at the same time.</p>
+ * <p>All are null at the same time or all are not null at the same time.</p>
+ * <p>Fields are specified by their full path names, for example a.b.c.</p>
  *
  * @author Zhang Peng
  */
@@ -61,13 +58,13 @@ public @interface NotNullGroup {
     Class<? extends Payload>[] payload() default {};
 
     /**
-     * 一组属性的全路径集合
-     * <p>至少有两个元素</p>
+     * The set of full paths of a group of fields.
+     * <p>Must contain at least two elements.</p>
      */
     String[] fields();
 
     /**
-     * 组非空类型
+     * The not-null type of the group.
      */
     NotNullType type();
 
@@ -85,31 +82,31 @@ public @interface NotNullGroup {
 
     enum NotNullType {
         /**
-         * 至少有一个属性的值不是null
+         * At least one field's value is not null.
          */
-        AT_LEAST_ONE_IS_NO_NULL,
+        AT_LEAST_ONE_IS_NOT_NULL,
         /**
-         * 至少有一个属性的值是null
+         * At least one field's value is null.
          */
         AT_LEAST_ONE_IS_NULL,
         /**
-         * 只有一个属性的值不是null
+         * Only one field's value is not null.
          */
         ONLY_ONE_IS_NOT_NULL,
         /**
-         * 只有一个属性的值是null
+         * Only one field's value is null.
          */
         ONLY_ONE_IS_NULL,
         /**
-         * 同时全部不为空
+         * All are not null at the same time.
          */
         ALL_ARE_NOT_NULL,
         /**
-         * 同时全部为空
+         * All are null at the same time.
          */
         ALL_ARE_NULL,
         /**
-         * 同时全部为空或同时全部不为空
+         * All are null at the same time or all are not null at the same time.
          */
         ALL_ARE_NOT_NULL_OR_ALL_ARE_NULL
     }

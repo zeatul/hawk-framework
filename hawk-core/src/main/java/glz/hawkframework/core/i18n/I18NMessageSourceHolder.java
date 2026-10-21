@@ -33,6 +33,7 @@ public class I18NMessageSourceHolder {
     }
 
     public static Optional<String> getMessage(@Nonnull String key, @Nonnull Locale locale) {
+        if (i18NMessageSource == null) throw new IllegalStateException("I18NMessageSourceHolder is not initialized. Please call the constructor with I18NMessageSource first.");
         return i18NMessageSource.getMessage(key, locale);
     }
 

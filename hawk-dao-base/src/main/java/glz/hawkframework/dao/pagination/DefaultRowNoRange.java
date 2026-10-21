@@ -19,7 +19,7 @@ package glz.hawkframework.dao.pagination;
 /**
  * This class is responsible for
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 public class DefaultRowNoRange implements RowNoRange {
     private long minRowNo = 1;
@@ -40,22 +40,22 @@ public class DefaultRowNoRange implements RowNoRange {
 
     public void setMinRowNo(long minRowNo) {
         if (minRowNo < 1) {
-            throw new IllegalArgumentException("minRowNo must be greater than 1.");
+            throw new IllegalArgumentException("minRowNo must be greater than or equal to 1.");
         }
         this.minRowNo = minRowNo;
     }
 
     @Override
     public long getMaxRowNo() {
-        if (maxRowNo <= minRowNo) {
-            throw new IllegalStateException("maxRowNo must be greater than minRowNo.");
+        if (maxRowNo < minRowNo) {
+            throw new IllegalArgumentException("maxRowNo must be greater than or equal to minRowNo.");
         }
         return maxRowNo;
     }
 
     public void setMaxRowNo(long maxRowNo) {
-        if (maxRowNo <= minRowNo) {
-            throw new IllegalArgumentException("maxRowNo must be greater than minRowNo.");
+        if (maxRowNo < minRowNo) {
+            throw new IllegalArgumentException("maxRowNo must be greater than or equal to minRowNo.");
         }
         this.maxRowNo = maxRowNo;
     }

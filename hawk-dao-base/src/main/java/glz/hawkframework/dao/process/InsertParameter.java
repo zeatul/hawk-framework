@@ -21,7 +21,7 @@ import static glz.hawkframework.core.support.ArgumentSupport.argNotNull;
 /**
  * This class is responsible for
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 public class InsertParameter {
     public final Object insertObject;
@@ -43,6 +43,7 @@ public class InsertParameter {
         }
 
         public InsertParameter build() {
+            argNotNull(insertObject, "insertObject");
             return new InsertParameter(this);
         }
     }

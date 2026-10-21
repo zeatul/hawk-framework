@@ -27,31 +27,44 @@ import static glz.hawkframework.core.support.ArgumentSupport.argNotNull;
 
 /**
  * This class is responsible for
- * <p>提供基于线程池的异步任务执行能力，支持任务提交、回调、超时控制等功能。</p>
+ * <p>Provides thread-pool-based asynchronous task execution, supporting task submission, callbacks, timeout control, and other features.</p>
  *
  * @author Zhang Peng
  */
-public class DefaultAsyncExecutor implements AsyncExecutor{
+public class DefaultAsyncExecutor implements AsyncExecutor {
 
     private static final Logger LOG = LoggerFactory.getLogger(DefaultAsyncExecutor.class);
     private final ExecutorService executorService;
+    private final ScheduledExecutorService scheduledExecutorService;
     private final String name;
 
     /**
-     * 构造异步执行器（自定义线程池）
+     * Constructs an asynchronous executor (with a custom thread pool).
      *
-     * @param name            异步执行器名称
-     * @param executorService 自定义线程池
+     * @param name            the asynchronous executor name
+     * @param executorService the custom thread pool
      */
     public DefaultAsyncExecutor(@Nonnull String name, @Nonnull ExecutorService executorService) {
         this.executorService = argNotNull(executorService, "executorService");
         this.name = name;
+        // If the supplied thread pool supports scheduled tasks, use it directly; otherwise create a separate single-thread scheduler
+        if (executorService instanceof ScheduledExecutorService) {
+            this.scheduledExecutorService = (ScheduledExecutorService) executorService;
+        } else {
+            this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(
+                r -> {
+                    Thread t = new Thread(r, name + "-scheduler");
+                    t.setDaemon(true);
+                    return t;
+                }
+            );
+        }
     }
 
     /**
-     * 构造异步执行器（自定义线程池）
+     * Constructs an asynchronous executor (with a custom thread pool).
      *
-     * @param executorService 自定义线程池
+     * @param executorService the custom thread pool
      */
     public DefaultAsyncExecutor(@Nonnull ExecutorService executorService) {
         this("DefaultAsyncExecutor", executorService);
@@ -84,18 +97,17 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
     @Override
     public <T> AsyncResult<T> submitDelayed(Supplier<T> task, long delay, TimeUnit unit) {
         CompletableFuture<T> future = new CompletableFuture<>();
-        executorService.submit(() -> {
+        ScheduledFuture<?> scheduled = scheduledExecutorService.schedule(() -> {
             try {
-                Thread.sleep(unit.toMillis(delay));
                 T result = task.get();
                 future.complete(result);
-            } catch (InterruptedException e) {
-                future.completeExceptionally(e);
-                Thread.currentThread().interrupt();
             } catch (Exception e) {
                 future.completeExceptionally(e);
             }
-        });
+        }, delay, unit);
+
+        // If the future is cancelled, also cancel the scheduled task
+        future.whenComplete((r, ex) -> scheduled.cancel(false));
 
         return new AsyncResult<>(future);
     }
@@ -105,51 +117,61 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
                                                   long initialDelay,
                                                   long period,
                                                   TimeUnit unit) {
-        if (!(executorService instanceof ScheduledExecutorService)) {
-            throw new UnsupportedOperationException("当前线程池不支持周期性任务，请使用 ScheduledExecutorService");
-        }
-        return ((ScheduledExecutorService) executorService).scheduleAtFixedRate(task, initialDelay, period, unit);
+        return scheduledExecutorService.scheduleAtFixedRate(task, initialDelay, period, unit);
     }
 
     /**
-     * 关闭线程池
+     * Shuts down the thread pool.
      * <p>
-     * 不再接受新任务，等待已有任务完成
+     * No longer accepts new tasks; waits for existing tasks to complete
      * </p>
      */
     public void shutdown() {
-        LOG.info("正在关闭异步执行器: {}", name);
+        LOG.info("Shutting down async executor: {}", name);
         executorService.shutdown();
+        if (scheduledExecutorService != executorService) {
+            scheduledExecutorService.shutdown();
+        }
     }
 
     /**
-     * 立即关闭线程池
+     * Shuts down the thread pool immediately.
      * <p>
-     * 尝试停止所有正在执行的任务
+     * Attempts to stop all currently executing tasks
      * </p>
      */
     public void shutdownNow() {
-        LOG.info("正在强制关闭异步执行器: {}", name);
+        LOG.info("Force shutting down async executor: {}", name);
         executorService.shutdownNow();
+        if (scheduledExecutorService != executorService) {
+            scheduledExecutorService.shutdownNow();
+        }
     }
 
     /**
-     * 优雅关闭（带超时）
+     * Graceful shutdown (with timeout).
      *
-     * @param timeout 超时时间
-     * @param unit    时间单位
-     * @return true 如果所有任务已完成，否则 false
-     * @throws InterruptedException 如果等待被中断
+     * @param timeout the timeout
+     * @param unit    the time unit
+     * @return true if all tasks have completed, otherwise false
+     * @throws InterruptedException if the wait is interrupted
      */
     public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
         executorService.shutdown();
-        return executorService.awaitTermination(timeout, unit);
+        if (scheduledExecutorService != executorService) {
+            scheduledExecutorService.shutdown();
+        }
+        boolean execDone = executorService.awaitTermination(timeout, unit);
+        if (scheduledExecutorService != executorService) {
+            return execDone && scheduledExecutorService.awaitTermination(timeout, unit);
+        }
+        return execDone;
     }
 
     /**
-     * 获取线程池状态
+     * Gets the thread pool status.
      *
-     * @return 线程池状态信息
+     * @return thread pool status information
      */
     public String getPoolStatus() {
         if (executorService instanceof ThreadPoolExecutor) {
@@ -168,7 +190,7 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
     }
 
     /**
-     * 检查是否已关闭
+     * Checks whether it has been shut down.
      */
     public boolean isShutdown() {
         return executorService.isShutdown();

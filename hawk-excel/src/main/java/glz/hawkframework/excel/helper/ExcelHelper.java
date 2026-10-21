@@ -31,11 +31,11 @@ import javax.annotation.Nonnull;
 import java.io.*;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
@@ -52,18 +52,19 @@ import static glz.hawkframework.core.support.LogicSupport.consumeIfNotNull;
  */
 public abstract class ExcelHelper {
 
-    private final static Map<String, SheetParse> sheetParseMap = new ConcurrentHashMap<>();
+    // Use Class<?> as the key to avoid NPE caused by getCanonicalName() returning null (inner classes, anonymous classes, local classes)
+    private final static Map<Class<?>, SheetParse> sheetParseMap = new ConcurrentHashMap<>();
 
     /**
-     * 将数据写入Excel文件
-     * <p>参数{@code excelData}是一个map，key为Class，定义了一个sheet的格式，value为要写入这个sheet的数据</p>
-     * <p>只适用于小文件</p>
-     * <p>模板文件中的sheet格式会复制到输出文件中，模板除了提供表头外，还可以在第一个数据行，提供数据的显示格式，没有则使用默认格式。模板文件只能有一个数据行</p>
-     * <p>templateResourcePath必须用{@code /}开始，用{@code /}分割</p>
+     * Write data to an Excel file
+     * <p>The parameter {@code excelData} is a map whose key is a Class defining the format of a sheet, and whose value is the data to be written to that sheet</p>
+     * <p>Intended for small files only</p>
+     * <p>The sheet format in the template file is copied to the output file. In addition to providing the header, the template can also provide the display format of the data in the first data row; if absent, the default format is used. The template file can have only one data row</p>
+     * <p>templateResourcePath must start with {@code /} and be separated by {@code /}</p>
      *
-     * @param templateResourcePath excel模板文件的classpath路径，用来提供sheet的格式，不可为空
-     * @param outputFile           输出文件，不可为空
-     * @param excelData            要填充的数据
+     * @param templateResourcePath the classpath path of the excel template file, used to provide the sheet format, must not be null
+     * @param outputFile           the output file, must not be null
+     * @param excelData            the data to populate
      */
     public static void writeExcelWithTemplate(@Nonnull String templateResourcePath, @Nonnull File outputFile, @Nonnull Map<Class<?>, List<?>> excelData) {
         argNotBlank(templateResourcePath, "templateResourcePath");
@@ -71,14 +72,14 @@ public abstract class ExcelHelper {
     }
 
     /**
-     * 将数据写入Excel文件
-     * <p>参数{@code excelData}是一个map，key为Class，定义了一个sheet的格式，value为要写入这个sheet的数据</p>
-     * <p>只适用于小文件</p>
-     * <p>模板文件中的sheet格式会复制到输出文件中，模板除了提供表头外，还可以在第一个数据行，提供数据的显示格式，没有则使用默认格式。模板文件只能有一个数据行</p>
+     * Write data to an Excel file
+     * <p>The parameter {@code excelData} is a map whose key is a Class defining the format of a sheet, and whose value is the data to be written to that sheet</p>
+     * <p>Intended for small files only</p>
+     * <p>The sheet format in the template file is copied to the output file. In addition to providing the header, the template can also provide the display format of the data in the first data row; if absent, the default format is used. The template file can have only one data row</p>
      *
-     * @param templateFile excel模板文件，用来提供sheet的格式，不可为空
-     * @param outputFile   输出文件，不可为空
-     * @param excelData    要填充的数据
+     * @param templateFile the excel template file, used to provide the sheet format, must not be null
+     * @param outputFile   the output file, must not be null
+     * @param excelData    the data to populate
      */
     public static void writeExcelWithTemplate(@Nonnull File templateFile, @Nonnull File outputFile, @Nonnull Map<Class<?>, List<?>> excelData) {
         argument(argNotNull(templateFile, "templateFile"), File::exists, f -> "The file doesn't exist, filePath = ." + f.getAbsolutePath());
@@ -92,52 +93,54 @@ public abstract class ExcelHelper {
     }
 
     /**
-     * 将数据写入Excel文件
-     * <p>参数{@code excelData}是一个map，key为Class，定义了一个sheet的格式，value为要写入这个sheet的数据</p>
-     * <p>只适用于小文件</p>
-     * <p>模板文件中的sheet格式会复制到输出文件中，模板除了提供表头外，还可以在第一个数据行，提供数据的显示格式，没有则使用默认格式。模板文件只能有一个数据行</p>
+     * Write data to an Excel file
+     * <p>The parameter {@code excelData} is a map whose key is a Class defining the format of a sheet, and whose value is the data to be written to that sheet</p>
+     * <p>Intended for small files only</p>
+     * <p>The sheet format in the template file is copied to the output file. In addition to providing the header, the template can also provide the display format of the data in the first data row; if absent, the default format is used. The template file can have only one data row</p>
      *
-     * @param templateInputStreamSupplier excel模板文件的输入流，用来提供sheet的格式，不可为空
-     * @param outputFile                  输出文件，不可为空
-     * @param excelData                   要填充的数据
+     * @param templateInputStreamSupplier the input stream of the excel template file, used to provide the sheet format, must not be null
+     * @param outputFile                  the output file, must not be null
+     * @param excelData                   the data to populate
      */
     public static void writeExcelWithTemplate(Supplier<InputStream> templateInputStreamSupplier, @Nonnull File outputFile, @Nonnull Map<Class<?>, List<?>> excelData) {
         argNotNull(templateInputStreamSupplier, "templateInputStreamSupplier");
         argument(argNotNull(outputFile, "outputFile"), f -> !f.exists(), f -> "The file already exists, filePath = ." + f.getAbsolutePath());
         argNotEmpty(excelData, "excelData");
         try (InputStream is = templateInputStreamSupplier.get(); XSSFWorkbook workbook = new XSSFWorkbook(is); FileOutputStream fos = new FileOutputStream(outputFile)) {
+            // workbook-level style cache, keyed by format string; styles provided by the template row are stored separately
+            Map<String, CellStyle> dateStyleCache = new HashMap<>();
             for (Class<?> aClass : excelData.keySet()) {
                 SheetParse sheetParse = getSheetParse(aClass);
                 XSSFSheet sheet = workbook.getSheetAt(sheetParse.getSheetIndex());
                 List<?> sheetData = excelData.get(aClass);
-                // 缓存模板文件的单元格样式
+                // Cache the cell styles of the template file
                 Map<ColumnParse, CellStyle> cellStyleMap = new HashMap<>();
                 Row templateRow = sheet.getRow(sheetParse.getDataStartIndex());
                 if (templateRow != null) {
                     for (ColumnParse columnParse : sheetParse.getColumns()) {
-                        if (columnParse == null) continue;// 跳过没有列的列
+                        if (columnParse == null) continue;// skip columns that have no column
                         if (columnParse.isRowNo()) continue;
                         Cell templateCell = templateRow.getCell(columnParse.getColumnIndex());
                         if (templateCell != null) {
                             cellStyleMap.put(columnParse, templateCell.getCellStyle());
                         }
                     }
-                    // 删除模板行
+                    // Remove the template row
                     sheet.removeRow(templateRow);
                 }
 
-                // 填充数据
+                // Populate data
                 for (int i = 0; i < sheetData.size(); i++) {
-                    XSSFRow row = sheet.createRow(i + sheetParse.getDataStartIndex()); // 跳过表头
+                    XSSFRow row = sheet.createRow(i + sheetParse.getDataStartIndex()); // skip the header
                     for (int j = 0; j < sheetParse.getColumns().length; j++) {
                         XSSFCell cell = null;
                         try {
                             ColumnParse columnParse = sheetParse.getColumns()[j];
-                            if (columnParse == null) continue; // 跳过没有列的列
+                            if (columnParse == null) continue; // skip columns that have no column
                             if (columnParse.isRowNo()) continue;
                             cell = row.createCell(columnParse.getColumnIndex());
                             Object cellValue = columnParse.getGetter().apply(sheetData.get(i));
-                            setCellValue(workbook, cell, columnParse, cellStyleMap, cellValue);
+                            setCellValue(workbook, cell, columnParse, cellStyleMap, dateStyleCache, cellValue);
                         } catch (RuntimeException ex) {
                             if (cell != null) {
                                 throw new IllegalStateException(String.format("Met Error while write Cell[%d, %d] of Sheet['%s']", cell.getRowIndex(), cell.getColumnIndex(), sheet.getSheetName()), ex);
@@ -157,12 +160,12 @@ public abstract class ExcelHelper {
     }
 
     /**
-     * 将数据写入Excel文件
-     * <p>参数{@code excelData}是一个map，key为Class，定义了一个sheet的格式，value为要写入这个sheet的数据</p>
-     * <p>只适用于小文件</p>
+     * Write data to an Excel file
+     * <p>The parameter {@code excelData} is a map whose key is a Class defining the format of a sheet, and whose value is the data to be written to that sheet</p>
+     * <p>Intended for small files only</p>
      *
-     * @param file      excel文件地址，不可为空
-     * @param excelData 要写入excel的数据，不可为空
+     * @param file      the excel file path, must not be null
+     * @param excelData the data to be written to excel, must not be null
      */
     public static void writeExcel(@Nonnull File file, @Nonnull Map<Class<?>, List<?>> excelData) {
         argument(argNotNull(file, "file"), f -> !f.exists(), f -> "The file already exists, filePath = ." + f.getAbsolutePath());
@@ -170,26 +173,28 @@ public abstract class ExcelHelper {
 
         try (XSSFWorkbook workbook = new XSSFWorkbook(); FileOutputStream fos = new FileOutputStream(file)) {
             Map<SheetParse, Sheet> sheetMap = new HashMap<>();
+            // workbook-level style cache, keyed by format string
+            Map<String, CellStyle> dateStyleCache = new HashMap<>();
             for (Class<?> aClass : excelData.keySet()) {
                 SheetParse sheetParse = getSheetParse(aClass);
                 List<?> sheetData = excelData.get(aClass);
                 XSSFSheet sheet = workbook.createSheet(StringHelper.isBlank(sheetParse.getSheetName()) ? "Sheet" + sheetParse.getSheetIndex() : sheetParse.getSheetName());
                 sheetMap.put(sheetParse, sheet);
 
-                // 创建表头
+                // Create the header
                 int headerRowCount = createHeader(workbook, sheet, sheetParse);
 
-                // 填充数据
+                // Populate data
                 Map<ColumnParse, CellStyle> cellStyleMap = new HashMap<>();
                 for (int i = 0; i < sheetData.size(); i++) {
-                    XSSFRow row = sheet.createRow(i + headerRowCount); // 跳过表头
+                    XSSFRow row = sheet.createRow(i + headerRowCount); // skip the header
                     for (int j = 0; j < sheetParse.getColumns().length; j++) {
                         ColumnParse columnParse = sheetParse.getColumns()[j];
-                        if (columnParse == null) continue; // 跳过没有列的列
+                        if (columnParse == null) continue; // skip columns that have no column
                         if (columnParse.isRowNo()) continue;
                         XSSFCell cell = row.createCell(columnParse.getColumnIndex());
                         Object cellValue = columnParse.getGetter().apply(sheetData.get(i));
-                        setCellValue(workbook, cell, columnParse, cellStyleMap, cellValue);
+                        setCellValue(workbook, cell, columnParse, cellStyleMap, dateStyleCache, cellValue);
                     }
                 }
             }
@@ -205,8 +210,10 @@ public abstract class ExcelHelper {
         }
     }
 
-    private static void setCellValue(XSSFWorkbook workbook, XSSFCell cell, ColumnParse columnParse, Map<ColumnParse, CellStyle> cellStyleMap, Object cellValue) {
-        // 设置可能存在的来自于模板的单元格样式
+    private static void setCellValue(XSSFWorkbook workbook, XSSFCell cell, ColumnParse columnParse,
+                                     Map<ColumnParse, CellStyle> cellStyleMap,
+                                     Map<String, CellStyle> dateStyleCache, Object cellValue) {
+        // Set the cell style that may come from the template
         consumeIfNotNull(cellStyleMap.get(columnParse), cell::setCellStyle);
         if (!columnParse.isWritable()) return;
 
@@ -225,65 +232,24 @@ public abstract class ExcelHelper {
             return;
         }
         if (cellValue instanceof Date) {
-            CellStyle cellStyle = cellStyleMap.computeIfAbsent(columnParse, c -> {
-                CellStyle s = workbook.createCellStyle();
-                if (StringHelper.isNotBlank(columnParse.getFormat())) {
-                    s.setDataFormat(workbook.createDataFormat().getFormat(columnParse.getFormat()));
-                } else {
-                    s.setDataFormat((short) 20);
-                }
-                return s;
-            });
-            cell.setCellStyle(cellStyle);
+            cell.setCellStyle(getOrCreateDateStyle(workbook, columnParse, dateStyleCache, (short) 20));
             cell.setCellValue((Date) cellValue);
             return;
         }
         if (cellValue instanceof LocalDateTime) {
-            CellStyle cellStyle = cellStyleMap.computeIfAbsent(columnParse, c -> {
-                CellStyle s = workbook.createCellStyle();
-                if (StringHelper.isNotBlank(columnParse.getFormat())) {
-                    s.setDataFormat(workbook.createDataFormat().getFormat(columnParse.getFormat()));
-                } else {
-                    s.setDataFormat((short) 20);
-                }
-                return s;
-            });
-            cell.setCellStyle(cellStyle);
+            cell.setCellStyle(getOrCreateDateStyle(workbook, columnParse, dateStyleCache, (short) 20));
             cell.setCellValue((LocalDateTime) cellValue);
             return;
         }
         if (cellValue instanceof LocalDate) {
-            CellStyle cellStyle = cellStyleMap.computeIfAbsent(columnParse, c -> {
-                CellStyle s = workbook.createCellStyle();
-                if (StringHelper.isNotBlank(columnParse.getFormat())) {
-                    s.setDataFormat(workbook.createDataFormat().getFormat(columnParse.getFormat()));
-                } else {
-                    s.setDataFormat((short) 14);
-                }
-                return s;
-            });
-            cell.setCellStyle(cellStyle);
+            cell.setCellStyle(getOrCreateDateStyle(workbook, columnParse, dateStyleCache, (short) 14));
             cell.setCellValue((LocalDate) cellValue);
             return;
         }
         if (cellValue instanceof LocalTime) {
-//            if (StringHelper.isNotBlank(columnParse.getFormat())) {
-//                cell.setCellValue(DateTimeHelper.format((LocalTime) cellValue, columnParse.getFormat()));
-//            } else {
-//                cell.setCellValue(cellValue.toString());
-//            }
-            CellStyle cellStyle = cellStyleMap.computeIfAbsent(columnParse, c -> {
-                CellStyle s = workbook.createCellStyle();
-                if (StringHelper.isNotBlank(columnParse.getFormat())) {
-                    s.setDataFormat(workbook.createDataFormat().getFormat(columnParse.getFormat()));
-                } else {
-                    s.setDataFormat((short) 21);
-                }
-                return s;
-            });
-            cell.setCellStyle(cellStyle);
-            // excel不支持LocalTime，只能将LocalTime转为Date，再设置format格式只显示时间
-            Date date = Date.from(((LocalTime) cellValue).atDate(java.time.LocalDate.of(1970, 1, 1)).atZone(ZoneId.systemDefault()).toInstant());
+            cell.setCellStyle(getOrCreateDateStyle(workbook, columnParse, dateStyleCache, (short) 21));
+            // excel does not support LocalTime, so LocalTime can only be converted to Date, and then the format is set to display only the time
+            Date date = Date.from(((LocalTime) cellValue).atDate(LocalDate.of(1970, 1, 1)).atZone(ZoneId.systemDefault()).toInstant());
             cell.setCellValue(date);
             return;
         }
@@ -310,9 +276,35 @@ public abstract class ExcelHelper {
     }
 
     /**
-     * 创建表头
+     * Get or create the cell style for the date type
+     * <p>The key of the style cache consists of the "format string + default format code", so that a style with the same format is created only once within the same workbook,
+     * avoiding repeated calls to {@link Workbook#createCellStyle()} that would hit Excel's style count limit (about 64000).</p>
      *
-     * @return 表头行数
+     * @param workbook      the workbook
+     * @param columnParse   the column definition, used to get the custom format
+     * @param dateStyleCache the workbook-level style cache
+     * @param defaultFormat the default format code used when no format is specified
+     * @return the cell style
+     */
+    private static CellStyle getOrCreateDateStyle(XSSFWorkbook workbook, ColumnParse columnParse,
+                                                  Map<String, CellStyle> dateStyleCache, short defaultFormat) {
+        final String format = columnParse.getFormat();
+        final String cacheKey = StringHelper.isNotBlank(format) ? format : "default:" + defaultFormat;
+        return dateStyleCache.computeIfAbsent(cacheKey, k -> {
+            CellStyle style = workbook.createCellStyle();
+            if (StringHelper.isNotBlank(format)) {
+                style.setDataFormat(workbook.createDataFormat().getFormat(format));
+            } else {
+                style.setDataFormat(defaultFormat);
+            }
+            return style;
+        });
+    }
+
+    /**
+     * Create the header
+     *
+     * @return the number of header rows
      */
     private static int createHeader(XSSFWorkbook workbook, XSSFSheet sheet, SheetParse sheetParse) {
         if (sheetParse.getDataStartIndex() == 0) {
@@ -321,7 +313,7 @@ public abstract class ExcelHelper {
             XSSFRow row = sheet.createRow(0);
             for (int i = 0; i < sheetParse.getColumns().length; i++) {
                 ColumnParse columnParse = sheetParse.getColumns()[i];
-                if (columnParse == null) continue; // 跳过没有列的列
+                if (columnParse == null) continue; // skip columns that have no column
                 if (columnParse.isRowNo()) continue;
                 XSSFCell cell = row.createCell(columnParse.getColumnIndex()); // Changed from cell = row.createCell(i);
                 cell.setCellValue(StringHelper.isNotBlank(columnParse.getColumnName()) ? columnParse.getColumnName() : "column" + i);
@@ -333,13 +325,13 @@ public abstract class ExcelHelper {
     }
 
     /**
-     * 读取Excel文件的某些Sheet页的全部数据，放到Map里
-     * <p>返回结果是一个map，map的key是aClass，value是该aClass的List，存放了Excel的对应sheet页的数据</p>
-     * <p>只适用于小文件</p>
+     * Read all the data of some sheets of an Excel file into a map
+     * <p>The returned result is a map whose key is a Class (aClass) and whose value is a List of that aClass, containing the data of the corresponding sheet of the Excel file</p>
+     * <p>Intended for small files only</p>
      *
-     * @param file     excel文件
-     * @param aClasses 一个aClass对应一个sheet
-     * @return 接收所有对应sheet的map
+     * @param file     the excel file
+     * @param aClasses one aClass corresponds to one sheet
+     * @return a map containing all the corresponding sheets
      */
     public static Map<Class<?>, List<?>> readSheets(@Nonnull File file, Class<?>... aClasses) {
         argument(argNotNull(file, "file"), f -> f.exists() && f.isFile(), f -> "The file does not exist, filePath = ." + file.getAbsolutePath());
@@ -353,13 +345,13 @@ public abstract class ExcelHelper {
     }
 
     /**
-     * 读取Excel文件的某些Sheet页的全部数据，放到Map里
-     * <p>返回结果是一个map，map的key是aClass，value是该aClass的List，存放了Excel的对应sheet页的数据</p>
-     * <p>只适用于小文件</p>
+     * Read all the data of some sheets of an Excel file into a map
+     * <p>The returned result is a map whose key is a Class (aClass) and whose value is a List of that aClass, containing the data of the corresponding sheet of the Excel file</p>
+     * <p>Intended for small files only</p>
      *
-     * @param resourcePath excel文件的classpath路径
-     * @param aClasses     一个aClass对应一个sheet
-     * @return 接收所有对应sheet的map
+     * @param resourcePath the classpath path of the excel file
+     * @param aClasses     one aClass corresponds to one sheet
+     * @return a map containing all the corresponding sheets
      */
     public static Map<Class<?>, List<?>> readSheets(@Nonnull String resourcePath, Class<?>... aClasses) {
         return readSheets(() -> FileHelper.streamOf(resourcePath), aClasses);
@@ -386,14 +378,14 @@ public abstract class ExcelHelper {
     }
 
     /**
-     * 读取Excel文件的某个Sheet页的全部数据，放到集合里.
-     * <p>只适用于小文件</p>
-     * <p>Excel的Sheet页和接收实体类的对应关系，由该实体类的注解来配置</p>
+     * Read all the data of a sheet of an Excel file into a collection.
+     * <p>Intended for small files only</p>
+     * <p>The mapping between the Excel sheet and the receiving entity class is configured by that entity class's annotations</p>
      *
-     * @param file   文件名
-     * @param aClass 接收单个数据的类
-     * @param <T>    接收单个数据的类的类型
-     * @return 返回数据集合，不可为空
+     * @param file   the file name
+     * @param aClass the class that receives a single record
+     * @param <T>    the type of the class that receives a single record
+     * @return the returned data collection, must not be null
      * @see ExcelSheet
      * @see ExcelColumn
      */
@@ -410,16 +402,16 @@ public abstract class ExcelHelper {
     }
 
     /**
-     * 读取classpath下的Excel文件的某个Sheet页的全部数据，放到集合里.
-     * <p>只适用于小文件</p>
-     * <p>Excel的Sheet页和接收实体类的对应关系，由该实体类的注解来配置</p>
+     * Read all the data of a sheet of an Excel file under the classpath into a collection.
+     * <p>Intended for small files only</p>
+     * <p>The mapping between the Excel sheet and the receiving entity class is configured by that entity class's annotations</p>
      * <p>The resourcePath must start with '/'.</p>
      * <p>Package names are separated by "/".</p>
      *
      * @param resourcePath The resource path of the Excel file.
-     * @param aClass       接收单个数据的类
-     * @param <T>          接收单个数据的类的类型
-     * @return 返回数据集合，不可为空
+     * @param aClass       the class that receives a single record
+     * @param <T>          the type of the class that receives a single record
+     * @return the returned data collection, must not be null
      * @see ExcelSheet
      * @see ExcelColumn
      */
@@ -441,23 +433,25 @@ public abstract class ExcelHelper {
     private static <T> List<T> readOneSheet(XSSFWorkbook workbook, XSSFSheet sheet, SheetParse sheetParse) {
         List<T> list = new ArrayList<>();
         for (Row row : sheet) {
-            // 忽略掉可能的标题行
+            // Ignore the possible title row
             if (row.getRowNum() < sheetParse.getDataStartIndex()) continue;
 
             T object = (T) ReflectHelper.instance(sheetParse.getType());
             list.add(object);
+            sheetParse.getRowNoColumns().forEach(c -> c.getSetter().accept(object, row.getRowNum()));
 
             for (Cell cell : row) {
                 try {
+                    ColumnParse[] columns = sheetParse.getColumns();
+                    if (columns == null) continue;
+                    if (cell.getColumnIndex() >= columns.length) {
+                        throw new IllegalStateException(String.format("The column index %d of Sheet['%s'] exceeds the max configured column index %d.", cell.getColumnIndex(), sheet.getSheetName(), columns.length - 1));
+                    }
                     Object cellValue = getCellValue(workbook, cell);
-                    ColumnParse columnParse = sheetParse.getColumns()[cell.getColumnIndex()];
+                    ColumnParse columnParse = columns[cell.getColumnIndex()];
                     if (columnParse == null || !columnParse.isReadable()) continue;
                     Object columnValue = getColumnValue(cell, cellValue, columnParse.getValueType(), columnParse.getFieldName(), columnParse.getFormat());
-                    if (columnValue != null) sheetParse.getColumns()[cell.getColumnIndex()].getSetter().accept(object, columnValue);
-
-                    sheetParse.getRowNoColumns().forEach(c -> {
-                        c.getSetter().accept(object, cell.getRowIndex());
-                    });
+                    if (columnValue != null) columns[cell.getColumnIndex()].getSetter().accept(object, columnValue);
                 } catch (Exception ex) {
                     throw new IllegalStateException(String.format("Met Error while read Cell[%d, %d] of Sheet['%s']", cell.getRowIndex(), cell.getColumnIndex(), sheet.getSheetName()), ex);
                 }
@@ -469,12 +463,13 @@ public abstract class ExcelHelper {
     private static SheetParse getSheetParse(Class<?> aClass) {
         argNotNull(aClass, "aClass");
 
-        SheetParse sheetParse = sheetParseMap.get(aClass.getCanonicalName());
+        SheetParse sheetParse = sheetParseMap.get(aClass);
         if (sheetParse != null) return sheetParse;
 
         sheetParse = new SheetParse();
         sheetParse.setType(aClass);
         ExcelSheet excelSheet = aClass.getAnnotation(ExcelSheet.class);
+        if (excelSheet == null) throw new IllegalArgumentException("The class must be annotated with @ExcelSheet: " + aClass.getName());
 
         sheetParse.setDataStartIndex(excelSheet.dataStartIndex());
         if (sheetParse.getDataStartIndex() <= 0) throw new IllegalArgumentException("The dataStartIndex of ExcelSheet must be greater than 0.");
@@ -528,7 +523,7 @@ public abstract class ExcelHelper {
             sheetParse.setColumns(columns);
         }
 
-        sheetParseMap.put(aClass.getCanonicalName(), sheetParse);
+        sheetParseMap.put(aClass, sheetParse);
 
         return sheetParse;
     }
@@ -536,52 +531,52 @@ public abstract class ExcelHelper {
     private static Object getColumnValue(Cell cell, Object cellValue, Class<?> columnValueType, String fieldName, String format) {
         if (cellValue == null) return null;
 
-        // 接收类型为String
+        // The receiving type is String
         if (columnValueType.isAssignableFrom(String.class)) {
             if (cellValue instanceof Double) {
                 // Date
-                // 处理数字，判断是否为日期类型
+                // Handle numbers and determine whether they are of date type
                 if (DateUtil.isCellDateFormatted(cell)) {
                     Date date = DateUtil.getJavaDate(cell.getNumericCellValue());
                     if (StringHelper.isBlank(format)) throw new IllegalStateException(String.format("The format of field[%s] is blank.", fieldName));
                     return getDateString(date, format);
                 } else {
-                    return String.valueOf(cellValue);
+                    return BigDecimal.valueOf((Double) cellValue).toPlainString();
                 }
             } else {
                 return String.valueOf(cellValue);
             }
         }
-        // 接收类型为Integer
+        // The receiving type is Integer
         else if (columnValueType.isAssignableFrom(Integer.class)) {
             if (cellValue instanceof Double) return ((Double) cellValue).intValue();
             if (cellValue instanceof String) return Integer.valueOf((String) cellValue);
             throw new IllegalStateException(String.format("The value of cell[%d, %d] is illegal, can't be convert to Integer.", cell.getRowIndex(), cell.getColumnIndex()));
-        }// 接收类型为Long
+        }// The receiving type is Long
         else if (columnValueType.isAssignableFrom(Long.class)) {
             if (cellValue instanceof Double) return ((Double) cellValue).longValue();
             if (cellValue instanceof String) return Long.valueOf((String) cellValue);
             throw new IllegalStateException(String.format("The value of cell[%d, %d] is illegal, can't be convert to Long.", cell.getRowIndex(), cell.getColumnIndex()));
-        }// 接收类型为BigInteger
+        }// The receiving type is BigInteger
         else if (columnValueType.isAssignableFrom(BigInteger.class)) {
             if (cellValue instanceof Double) return BigInteger.valueOf((long) cellValue);
             if (cellValue instanceof String) return new BigInteger((String) cellValue);
             throw new IllegalStateException(String.format("The value of cell[%d, %d] is illegal, can't be convert to Integer.", cell.getRowIndex(), cell.getColumnIndex()));
         }
 
-        // 接收类型为BigDecimal
+        // The receiving type is BigDecimal
         else if (columnValueType.isAssignableFrom(BigDecimal.class)) {
             if (cellValue instanceof Double) return BigDecimal.valueOf((Double) cellValue);
             if (cellValue instanceof String) return new BigDecimal((String) cellValue);
             throw new IllegalStateException(String.format("The value of cell[%d, %d] is illegal, can't be convert to Long.", cell.getRowIndex(), cell.getColumnIndex()));
         }
-        // 接收类型为boolean
+        // The receiving type is boolean
         else if (columnValueType.isAssignableFrom(Boolean.class)) {
             if (cellValue instanceof Boolean) return cellValue;
             if (cellValue instanceof String) return Boolean.parseBoolean((String) cellValue);
             throw new IllegalStateException(String.format("The value of cell[%d, %d] is illegal, can't be convert to boolean.", cell.getRowIndex(), cell.getColumnIndex()));
         }
-        // 接收类型为LocalDate
+        // The receiving type is LocalDate
         else if (columnValueType.isAssignableFrom(LocalDate.class)) {
             if (cellValue instanceof Double) {
                 if (DateUtil.isCellDateFormatted(cell)) {
@@ -596,7 +591,7 @@ public abstract class ExcelHelper {
             } else {
                 throw new IllegalStateException(String.format("The value of cell[%d, %d] is illegal, can't be convert to LocalDate.", cell.getRowIndex(), cell.getColumnIndex()));
             }
-        }// 接收类型为LocalTime
+        }// The receiving type is LocalTime
         else if (columnValueType.isAssignableFrom(LocalTime.class)) {
             if (cellValue instanceof Double) {
                 if (DateUtil.isCellDateFormatted(cell)) {
@@ -611,7 +606,7 @@ public abstract class ExcelHelper {
             } else {
                 throw new IllegalStateException(String.format("The value of cell[%d, %d] is illegal, can't be convert to LocalTime.", cell.getRowIndex(), cell.getColumnIndex()));
             }
-        }// 接收类型为LocalDateTime
+        }// The receiving type is LocalDateTime
         else if (columnValueType.isAssignableFrom(LocalDateTime.class)) {
             if (cellValue instanceof Double) {
                 if (DateUtil.isCellDateFormatted(cell)) {
@@ -645,8 +640,8 @@ public abstract class ExcelHelper {
     }
 
     private static String getDateString(Date date, String format) {
-        SimpleDateFormat sdf = new SimpleDateFormat(format);
-        return sdf.format(date);
+        // Use DateTimeFormatter instead of SimpleDateFormat to avoid thread-safety issues
+        return DateTimeFormatter.ofPattern(format).withZone(ZoneId.systemDefault()).format(date.toInstant());
     }
 
     public static Object getCellValue(XSSFWorkbook workbook, Cell cell) {

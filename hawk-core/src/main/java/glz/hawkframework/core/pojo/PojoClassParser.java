@@ -24,18 +24,20 @@ import java.time.LocalTime;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * This class is responsible for
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 public class PojoClassParser {
 
-    private final HashSet<Class<?>> BASIC_TYPES = new HashSet<>();
+    private final Set<Class<?>> BASIC_TYPES = ConcurrentHashMap.newKeySet();
 
     {
-        // Java基本类型及其包装类
+        // Java primitive types and their wrapper classes
         BASIC_TYPES.add(boolean.class);
         BASIC_TYPES.add(Boolean.class);
         BASIC_TYPES.add(byte.class);
@@ -55,25 +57,23 @@ public class PojoClassParser {
         BASIC_TYPES.add(void.class);
         BASIC_TYPES.add(Void.class);
 
-        // String和常见不可递归类型
+        // String and common non-recursive types
         BASIC_TYPES.add(String.class);
         BASIC_TYPES.add(BigDecimal.class);
         BASIC_TYPES.add(BigInteger.class);
 
-        // 日期时间类型
+        // Date/time types
         BASIC_TYPES.add(Date.class);
         BASIC_TYPES.add(java.sql.Date.class);
         BASIC_TYPES.add(LocalDate.class);
         BASIC_TYPES.add(LocalTime.class);
         BASIC_TYPES.add(LocalDateTime.class);
 
-        // 枚举类型（通常不递归）
+        // Enum types (usually not recursive)
         BASIC_TYPES.add(Enum.class);
     }
 
-
     public PojoClassParser() {
-
     }
 
     public PojoClassParser(List<Class<?>> extraBasicTypes) {
@@ -90,4 +90,14 @@ public class PojoClassParser {
         return clazz.isArray() || Iterable.class.isAssignableFrom(clazz);
     }
 
+    /**
+     * Adds extra basic types (thread-safe).
+     *
+     * @param extraBasicTypes the extra basic types
+     */
+    public void addBasicTypes(Set<Class<?>> extraBasicTypes) {
+        if (extraBasicTypes != null) {
+            BASIC_TYPES.addAll(extraBasicTypes);
+        }
+    }
 }

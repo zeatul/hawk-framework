@@ -28,7 +28,7 @@ import static glz.hawkframework.core.support.StateSupport.stateNotNull;
 /**
  * {@link StringBoolean} defines {@code 1} as true and {@code 0} as false.
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 public enum StringBoolean {
 
@@ -71,11 +71,11 @@ public enum StringBoolean {
     }
 
     public static @Nonnull StringBoolean parseByValue(@Nonnull String value) {
-        return stateNotNull(fromValue(argNotNull(value)), () -> String.format("Found no NumberBoolean with value %d", value));
+        return stateNotNull(fromValue(argNotNull(value)), () -> String.format("Found no StringBoolean with value %s", value));
     }
 
     public static @Nonnull StringBoolean parseByName(@Nonnull String name) {
-        return stateNotNull(fromName(argNotNull(name)), () -> String.format("Found no NumberBoolean named %s", name));
+        return stateNotNull(fromName(argNotNull(name)), () -> String.format("Found no StringBoolean named %s", name));
     }
 
 }

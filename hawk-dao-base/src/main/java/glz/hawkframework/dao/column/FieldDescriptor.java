@@ -17,6 +17,7 @@
 package glz.hawkframework.dao.column;
 
 import java.lang.annotation.Annotation;
+import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
@@ -58,6 +59,28 @@ public class FieldDescriptor<K, V, Z extends Annotation> {
 
     public Z getFieldAnnotation() {
         return fieldAnnotation;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        FieldDescriptor<?, ?, ?> that = (FieldDescriptor<?, ?, ?>) o;
+        return Objects.equals(fieldName, that.fieldName) &&
+               Objects.equals(fieldAnnotation, that.fieldAnnotation);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(fieldName, fieldAnnotation);
+    }
+
+    @Override
+    public String toString() {
+        return "FieldDescriptor{" +
+               "fieldName='" + fieldName + '\'' +
+               ", fieldAnnotation=" + fieldAnnotation +
+               '}';
     }
 }
 

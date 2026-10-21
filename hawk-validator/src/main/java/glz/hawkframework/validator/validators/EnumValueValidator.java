@@ -53,7 +53,7 @@ public class EnumValueValidator<T> implements ConstraintValidator<EnumValue, T> 
             try {
                 enumClass = (Class<? extends Enum>) Class.forName(enumClassName);
             } catch (ClassNotFoundException e) {
-                throw new RuntimeException(e);
+                throw new IllegalStateException("Cannot load enum class: " + enumClassName, e);
             }
         }
 

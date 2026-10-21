@@ -20,9 +20,9 @@ import java.lang.annotation.*;
 
 /**
  * This annotation is responsible for self maintaining
- * <p>记录更新时间</p>
+ * <p>Record update time.</p>
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 @ColumnFunction
 @Target(ElementType.FIELD)

@@ -36,17 +36,20 @@ import static glz.hawkframework.core.support.ArgumentSupport.argNotBlank;
 import static glz.hawkframework.validator.constraints.CompareFields.DEFAULT_MESSAGE_TEMPLATE;
 
 /**
- * 这个类用来校验一个对象的两个属性的比较结果符合预期
+ * This class is used to validate that the comparison result of two fields of an object matches the expectation.
  *
  * @author Zhang Peng
  */
 public class CompareFieldsValidator<T> implements ConstraintValidator<CompareFields, T> {
 
-    private final ExpressionParser expressionParser = new SpelExpressionParser(new SpelParserConfiguration(SpelCompilerMode.MIXED,   // 编译模式
-        null  // 类加载器，可为 null
+    private final ExpressionParser expressionParser = new SpelExpressionParser(new SpelParserConfiguration(SpelCompilerMode.MIXED,   // compiler mode
+        null  // class loader, may be null
     ));
 
     private final Map<String, Expression> expressionCache = new ConcurrentHashMap<>();
+
+    // Upper limit of the SpEL expression cache, to prevent OOM caused by dynamic field paths
+    private static final int MAX_EXPRESSION_CACHE_SIZE = 1024;
 
     private CompareFields compareFields;
 
@@ -61,10 +64,10 @@ public class CompareFieldsValidator<T> implements ConstraintValidator<CompareFie
         final String left = argNotBlank(compareFields.left(), "CompareFields.left");
         final String right = argNotBlank(compareFields.right(), "CompareFields.right");
         final CompareFields.CompareResult expectedResult = compareFields.expectedResult();
-        final Expression expForLeft = expressionCache.computeIfAbsent(left, expressionParser::parseExpression);
+        final Expression expForLeft = getCachedExpression(left);
         final Object leftValue = expForLeft.getValue(value);
         if (leftValue == null) return true;
-        final Expression expForRight = expressionCache.computeIfAbsent(right, expressionParser::parseExpression);
+        final Expression expForRight = getCachedExpression(right);
         final Object rightValue = expForRight.getValue(value);
         if (rightValue == null) return true;
 
@@ -77,6 +80,13 @@ public class CompareFieldsValidator<T> implements ConstraintValidator<CompareFie
         }
 
         return isValid;
+    }
+
+    private Expression getCachedExpression(String expressionString) {
+        if (expressionCache.size() >= MAX_EXPRESSION_CACHE_SIZE) {
+            expressionCache.clear();
+        }
+        return expressionCache.computeIfAbsent(expressionString, expressionParser::parseExpression);
     }
 
     private boolean match(CompareFields.CompareResult expectedResult, int actualResult) {
@@ -101,46 +111,53 @@ public class CompareFieldsValidator<T> implements ConstraintValidator<CompareFie
     @SuppressWarnings("unchecked")
     private int compare(final Object leftValue, final Object rightValue) {
         if (leftValue == rightValue) return 0;
-        // 1. 相同类型且为 Comparable
+        // 1. Same type and Comparable
         if (leftValue.getClass() == rightValue.getClass() && leftValue instanceof Comparable) {
             return ((Comparable<Object>) leftValue).compareTo(rightValue);
         }
 
-        // 2. 数字类型统一转 BigDecimal
+        // 2. Numeric types are uniformly converted to BigDecimal (supports cross-type: Long vs Integer, etc.)
         if (leftValue instanceof Number && rightValue instanceof Number) {
             BigDecimal aNum = toBigDecimal((Number) leftValue);
             BigDecimal bNum = toBigDecimal((Number) rightValue);
             return aNum.compareTo(bNum);
         }
 
-        // 3. 日期时间类型统一转 Instant（支持 Date 及 java.time 系列）
+        // 3. Date/time types are uniformly converted to Instant (supports Date and the java.time family)
+        // Note: Long is no longer automatically treated as a timestamp, to avoid business IDs/version numbers being misidentified
         if (isTemporalType(leftValue) && isTemporalType(rightValue)) {
             Instant aInst = toInstant(leftValue);
             Instant bInst = toInstant(rightValue);
             return aInst.compareTo(bInst);
         }
 
-        // 4. 字符串比较
+        // 4. String comparison
         if (leftValue instanceof CharSequence && rightValue instanceof CharSequence) {
             return leftValue.toString().compareTo(rightValue.toString());
         }
 
-        // 5. 其他情况（比如 LocalDate vs String）无法比较
-        throw new IllegalArgumentException(String.format("Can't compare %s with %s", leftValue.getClass().getName(), rightValue.getClass().getName()));
+        // 5. Other cases cannot be compared
+        throw new IllegalArgumentException(String.format("Can't compare %s with %s. Supported: same-type Comparable, Number, Temporal, CharSequence", leftValue.getClass().getName(), rightValue.getClass().getName()));
     }
 
     private static BigDecimal toBigDecimal(Number num) {
         if (num instanceof BigDecimal) return (BigDecimal) num;
         if (num instanceof Double || num instanceof Float) {
-            // 避免浮点精度误差，使用字符串构造
+            // Avoid floating-point precision errors, construct from a string
             return new BigDecimal(num.toString());
         }
         return BigDecimal.valueOf(num.longValue());
     }
 
+    /**
+     * Determines whether the value is a temporal type.
+     * <p>Does not include {@code Long}, to avoid business fields (IDs, version numbers) being misidentified as timestamps.</p>
+     * <p>Does not include {@code LocalTime}, because it cannot be converted to an {@link Instant} (it has no date information);
+     * {@code false} is returned here so that it goes through the subsequent string/other comparison branches, avoiding an exception.</p>
+     */
     private static boolean isTemporalType(Object obj) {
-        return obj instanceof Date || obj instanceof Temporal ||      // LocalDate, LocalDateTime, ZonedDateTime 等
-            obj instanceof Long;            // 时间戳（毫秒）也可视为时间
+        if (obj instanceof LocalTime) return false;
+        return obj instanceof Date || obj instanceof Temporal;      // LocalDate, LocalDateTime, ZonedDateTime, etc.
     }
 
     private static Instant toInstant(Object obj) {
@@ -158,9 +175,6 @@ public class CompareFieldsValidator<T> implements ConstraintValidator<CompareFie
         }
         if (obj instanceof Instant) {
             return (Instant) obj;
-        }
-        if (obj instanceof Long) {
-            return Instant.ofEpochMilli((Long) obj);
         }
         throw new IllegalArgumentException("Unsupported time type: " + obj.getClass());
     }

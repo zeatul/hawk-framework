@@ -31,7 +31,7 @@ import java.util.function.Supplier;
  * Miscellaneous state check methods.
  * <p>Mainly for internal use within the framework.</p>
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 public class StateSupport {
 

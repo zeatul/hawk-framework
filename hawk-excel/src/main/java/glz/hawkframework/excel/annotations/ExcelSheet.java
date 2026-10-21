@@ -20,7 +20,7 @@ import java.lang.annotation.*;
 
 /**
  * This annotation is responsible for
- * <p>被{@code ExcelSheet}注解的类，负责接收指定索引所在的sheet的数据</p>
+ * <p>Classes annotated with {@code ExcelSheet} are responsible for receiving the data of the sheet at the specified index</p>
  *
  * @author Zhang Peng
  */
@@ -29,21 +29,21 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ExcelSheet {
     /**
-     * Excel Sheet的索引号
-     * <p>Sheet的索引号从{@code 0}开始</p>
+     * The index of the Excel sheet
+     * <p>The sheet index starts from {@code 0}</p>
      */
     int sheetIndex() default 0;
 
     /*
-     * Excel Sheet的名称
-     * <p>导出时，用来指定sheet的名称，为空，则使用Excel的默认名称</p>
+     * The name of the Excel sheet
+     * <p>When exporting, it is used to specify the name of the sheet; if empty, the default Excel name is used</p>
      */
     String sheetName() default "";
 
     /**
-     * Excel Sheet的数据记录的起始行号
-     * <p>起始行号从{@code 0}开始</p>
-     * <p>默认值为{@code 1}，假设该sheet的第一行为标题行</p>
+     * The start row index of the data records of the Excel sheet
+     * <p>The start row index starts from {@code 0}</p>
+     * <p>The default value is {@code 1}, assuming that the first row of the sheet is the title row</p>
      */
     int dataStartIndex() default 1;
 }

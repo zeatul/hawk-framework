@@ -16,6 +16,8 @@
 
 package glz.hawkframework.core.tuple;
 
+import java.util.Objects;
+
 /**
  * This class is responsible for
  *
@@ -38,5 +40,23 @@ public class Tuple5<T1, T2, T3, T4, T5> {
 
     public static <T1, T2, T3, T4, T5> Tuple5<T1, T2, T3, T4, T5> of(T1 t1, T2 t2, T3 t3, T4 t4, T5 t5) {
         return new Tuple5<>(t1, t2, t3, t4, t5);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Tuple5)) return false;
+        Tuple5<?, ?, ?, ?, ?> that = (Tuple5<?, ?, ?, ?, ?>) o;
+        return Objects.equals(t1, that.t1) && Objects.equals(t2, that.t2) && Objects.equals(t3, that.t3) && Objects.equals(t4, that.t4) && Objects.equals(t5, that.t5);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(t1, t2, t3, t4, t5);
+    }
+
+    @Override
+    public String toString() {
+        return "Tuple5{t1=" + t1 + ", t2=" + t2 + ", t3=" + t3 + ", t4=" + t4 + ", t5=" + t5 + '}';
     }
 }

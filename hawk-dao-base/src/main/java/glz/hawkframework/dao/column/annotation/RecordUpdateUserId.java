@@ -20,9 +20,9 @@ import java.lang.annotation.*;
 
 /**
  * This annotation is responsible for self maintaining
- * <p>记录更新者id</p>
+ * <p>Id of the record updater.</p>
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 @ColumnFunction
 @Target(ElementType.FIELD)

@@ -20,6 +20,7 @@ import glz.hawkframework.validator.constraints.UniversalCheck;
 import glz.hawkframework.validator.support.UniversalCheckSupport;
 import org.hibernate.validator.constraintvalidation.HibernateConstraintValidatorContext;
 
+import javax.validation.ConstraintDeclarationException;
 import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorContext;
 import java.util.Map;
@@ -29,7 +30,7 @@ import static glz.hawkframework.validator.constraints.UniversalCheck.DEFAULT_MES
 
 /**
  * This class is responsible for
- * <p>使用自定义方法校验</p>
+ * <p>Validating with a custom method</p>
  *
  * @author Zhang Peng
  */
@@ -46,14 +47,24 @@ public class UniversalCheckValidator implements ConstraintValidator<UniversalChe
     public boolean isValid(Object value, ConstraintValidatorContext context) {
         if (value == null) return true;
         Function<Object, Boolean> function = UniversalCheckSupport.loadChecker(universalCheck.checkerName());
-        boolean isValid = function.apply(value);
+        boolean isValid;
+        try {
+            isValid = function.apply(value);
+        } catch (RuntimeException e) {
+            throw new ConstraintDeclarationException("Checker '" + universalCheck.checkerName() + "' threw an exception when checking value: " + value, e);
+        }
         if (!isValid) {
             if (universalCheck.message().equals(DEFAULT_MESSAGE_TEMPLATE)) {
                 context.disableDefaultConstraintViolation();
                 HibernateConstraintValidatorContext hibernateContext = context.unwrap(HibernateConstraintValidatorContext.class);
                 Function<Object, Map<String, Object>> messageParameterSupplier = UniversalCheckSupport.findMessageParameterSupplier(universalCheck.checkerName());
                 if (messageParameterSupplier != null) {
-                    Map<String, Object> messageParameters = messageParameterSupplier.apply(value);
+                    Map<String, Object> messageParameters;
+                    try {
+                        messageParameters = messageParameterSupplier.apply(value);
+                    } catch (RuntimeException e) {
+                        throw new ConstraintDeclarationException("MessageParameterSupplier of checker '" + universalCheck.checkerName() + "' threw an exception when checking value: " + value, e);
+                    }
                     if (messageParameters != null) {
                         for (Map.Entry<String, Object> entry : messageParameters.entrySet()) {
                             hibernateContext.addMessageParameter(entry.getKey(), entry.getValue());

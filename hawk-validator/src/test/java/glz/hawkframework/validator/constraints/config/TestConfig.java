@@ -55,15 +55,15 @@ public class TestConfig {
         LocalValidatorFactoryBean bean = new LocalValidatorFactoryBean() {
             @Override
             protected void postProcessConfiguration(@Nonnull Configuration<?> configuration) {
-                // 注册 SpEL 脚本执行器
+                // Register the SpEL script evaluator
                 ((HibernateValidatorConfiguration) configuration)
                     .scriptEvaluatorFactory(new SpringELScriptEvaluatorFactory());
             }
         };
-        // 设置自定义的 MessageSource（用于校验错误信息的国际化）
+        // Configure a custom MessageSource (used for the internationalization of validation error messages)
         bean.setValidationMessageSource(messageSource);
 
-        // 其他定制：如设置 Provider、TraversableResolver 等
+        // Other customizations: such as configuring the Provider, TraversableResolver, etc.
         return bean;
     }
 

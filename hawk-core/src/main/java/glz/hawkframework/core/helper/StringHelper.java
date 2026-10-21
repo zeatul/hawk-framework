@@ -27,7 +27,7 @@ import static glz.hawkframework.core.support.ArgumentSupport.argument;
  * Miscellaneous {@link String} utility methods.
  * <p>Mainly for internal use within the framework.</p>
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 public abstract class StringHelper {
 
@@ -146,11 +146,15 @@ public abstract class StringHelper {
      * @param end        End index，exclusive
      * @param newPattern {@code String} to replace the substring in the given index.
      * @return a {@code String} with the replacements
+     * @throws IndexOutOfBoundsException if start < 0, end > length, or start > end
      */
-
     public static String replace(String inString, int start, int end, String newPattern) {
         if (isEmpty(inString)) {
             return inString;
+        }
+        int len = inString.length();
+        if (start < 0 || end > len || start > end) {
+            throw new IndexOutOfBoundsException(String.format("Invalid range: start=%d, end=%d, length=%d", start, end, len));
         }
         StringBuilder sb = new StringBuilder();
         sb.append(inString);
@@ -203,10 +207,9 @@ public abstract class StringHelper {
      * @param c the char to be repeated.
      * @param n the repeat times.
      * @return a {@code String}.
+     * @throws IllegalArgumentException if n < 0
      */
     public static String repeatChar(char c, int n) {
-        argNotNull(c, "c");
-
         if (n > 0) {
             char[] arr = new char[n];
             Arrays.fill(arr, c);
@@ -230,17 +233,11 @@ public abstract class StringHelper {
      */
     public static String repeatStr(String str, int n) {
         argNotNull(str, "str");
-        argument(n, i -> i > 0, i -> "The parameter: 'n' can't be less than 0.");
+        argument(n, i -> i >= 0, i -> "The parameter: 'n' can't be less than 0.");
         StringBuilder sb = new StringBuilder();
-        if (n > 0) {
-            for (int i = 0; i < n; i++) {
-                sb.append(str);
-            }
-            return sb.toString();
-        } else if (n == 0) {
-            return "";
-        } else {
-            throw new IllegalArgumentException("The parameter: 'n' can't be less than 0.");
+        for (int i = 0; i < n; i++) {
+            sb.append(str);
         }
+        return sb.toString();
     }
 }

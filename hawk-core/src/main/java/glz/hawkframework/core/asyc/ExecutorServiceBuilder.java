@@ -62,6 +62,11 @@ public class ExecutorServiceBuilder {
         return this;
     }
 
+    public ExecutorServiceBuilder setThreadFactory(ThreadFactory threadFactory) {
+        this.threadFactory = threadFactory;
+        return this;
+    }
+
     public ExecutorServiceBuilder setHandler(RejectedExecutionHandler handler){
         this.handler = handler;
         return this;

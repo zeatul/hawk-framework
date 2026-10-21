@@ -23,7 +23,7 @@ import java.util.List;
 /**
  * This interface is responsible for
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 public interface RepositoryContext {
 

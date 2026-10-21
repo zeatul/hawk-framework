@@ -18,7 +18,7 @@ package glz.hawkframework.validator.constraints.support;
 
 import glz.hawkframework.validator.constraints.NotNullGroup;
 
-import static glz.hawkframework.validator.constraints.NotNullGroup.NotNullType.AT_LEAST_ONE_IS_NO_NULL;
+import static glz.hawkframework.validator.constraints.NotNullGroup.NotNullType.AT_LEAST_ONE_IS_NOT_NULL;
 
 /**
  * This class is responsible for
@@ -26,7 +26,7 @@ import static glz.hawkframework.validator.constraints.NotNullGroup.NotNullType.A
  *
  * @author Zhang Peng
  */
-@NotNullGroup(fields = {"a", "b", "c", "d"}, type = AT_LEAST_ONE_IS_NO_NULL)
+@NotNullGroup(fields = {"a", "b", "c", "d"}, type = AT_LEAST_ONE_IS_NOT_NULL)
 public class ObjectForAtLeastOneIsNotNull {
 
     private String a;

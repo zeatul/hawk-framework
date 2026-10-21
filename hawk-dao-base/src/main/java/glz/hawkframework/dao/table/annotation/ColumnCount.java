@@ -21,7 +21,7 @@ import java.lang.annotation.*;
 
 /**
  * This annotation is responsible for describing
- * <p>表的字段数</p>
+ * <p>Number of columns of the table.</p>
  *
  * @author Zhang Peng
  */
@@ -31,7 +31,7 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ColumnCount {
     /**
-     * 字段数
+     * Number of columns.
      */
     int value();
 }

@@ -21,7 +21,7 @@ import java.util.Map;
 
 /**
  * This interface is responsible for
- * <p>定义计算分片号的方法</p>
+ * <p>Defines the method for computing the sharding id.</p>
  *
  * @author Zhang Peng
  */
@@ -29,10 +29,10 @@ public interface ShardingService {
 
 
     /**
-     * 生成分片号
+     * Generates the sharding id.
      *
-     * @param shardingParam 用来计算分片号的参数
-     * @return 分片号
+     * @param shardingParam the parameter used to compute the sharding id
+     * @return the sharding id
      */
     @Nonnull
     String generateShardingId(@Nonnull ShardingParam shardingParam);

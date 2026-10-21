@@ -16,7 +16,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 /**
  * Check the validated value must match the required {@link #pattern() pattern}
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 @Target({METHOD, FIELD, ANNOTATION_TYPE, CONSTRUCTOR, PARAMETER, TYPE_USE})
 @Retention(RUNTIME)
@@ -73,7 +73,7 @@ public @interface RegularCharSequence {
         /**
          * LOWERCASE ALPHABET
          */
-        LOWERCASE_ALPHABET_PATTERN("[a-a]*"),
+        LOWERCASE_ALPHABET_PATTERN("[a-z]*"),
         /**
          * DIGIT and CASE INSENSITIVE ALPHABET
          */

@@ -31,7 +31,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 /**
  * This annotation is responsible for
- * <p>校验给定值是不是枚举允许的值</p>
+ * <p>Validating whether the given value is one of the enum's allowed values.</p>
  *
  * @author Zhang Peng
  */

@@ -23,41 +23,53 @@ import static glz.hawkframework.core.support.ArgumentSupport.argNotNull;
 
 /**
  * This class is responsible for
- * <p></p>
+ * <p>Uses a private sentinel class to avoid conflicts between user values and the notExist sentinel; null results are not cached, to avoid caching empty values</p>
  *
  * @author Zhang Peng
  */
 public class DefaultCacheExecutor<K, V> implements CacheExecutor<K, V>, CacheManager<K> {
-    private final V notExist;
+
+    // Private sentinel class, ensuring it will never be equal to a user value
+    private static final class NotExistSentinel {
+        private NotExistSentinel() {}
+    }
 
     private final Cache<K, V> cache;
+    // Store the sentinel instance using generic erasure, to avoid unchecked warnings
+    @SuppressWarnings("unchecked")
+    private final V notExist = (V) new NotExistSentinel();
 
     /**
-     * 创建DefaultCacheExecutor对象
+     * Creates a DefaultCacheExecutor object.
      *
-     * @param cache           缓存
-     * @param notExist        一个对象，用来指代查不到数据
+     * @param cache the cache implementation, must not be null
      */
-    public DefaultCacheExecutor(Cache<K, V> cache, V notExist) {
+    public DefaultCacheExecutor(Cache<K, V> cache) {
         this.cache = argNotNull(cache, "cache");
-        this.notExist = argNotNull(notExist, "notExist");
     }
 
     @Override
     public V execute(K key, Supplier<V> loader) {
+        argNotNull(key, "key");
+        argNotNull(loader, "loader");
+        // Check the cache first, to avoid unnecessary computeIfAbsent calls
         V value = cache.get(key);
         if (value != null) {
-            if (value.equals(notExist)) return null;
-            return value;
+            return value == notExist ? null : value;
         }
-        value = loader.get();
-        if (value != null) {
-            cache.put(key, value);
-            return value;
-        } else {
-            cache.put(key, notExist);
+        // Atomic loading, to avoid repeatedly executing the loader on concurrent misses (cache stampede)
+        // Use a private sentinel class to mark "not exists", to avoid conflicts between user return values and the sentinel
+        // Note: null results are not cached, consistent with Cache.computeIfAbsent semantics
+        value = cache.computeIfAbsent(key, k -> {
+            V loaded = loader.get();
+            return loaded == null ? notExist : loaded;
+        });
+        if (value == notExist) {
+            // loader returned null, do not cache, remove the sentinel
+            cache.evict(key);
             return null;
         }
+        return value;
     }
 
     @Override
@@ -73,7 +85,7 @@ public class DefaultCacheExecutor<K, V> implements CacheExecutor<K, V>, CacheMan
     @Override
     public boolean exists(K key) {
         V value = cache.get(key);
-        return value != null && !value.equals(notExist);
+        return value != null && value != notExist;
     }
 
 

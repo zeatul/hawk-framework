@@ -104,7 +104,7 @@ public abstract class FileHelper {
      */
     public static byte[] readAllBytes(InputStream inputStream, int bufferSize) {
         argNotNull(inputStream, "inputStream");
-        argument(bufferSize, s -> s > 0, s -> "The bufferSize must bt greater than zero.");
+        argument(bufferSize, s -> s > 0, s -> "The bufferSize must be greater than zero.");
         try (InputStream is = inputStream; ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
             byte[] buffer = new byte[bufferSize];
             int readedBytes;
@@ -171,7 +171,7 @@ public abstract class FileHelper {
      */
     public static @Nonnull byte[] readAllBytes(File file) {
         try {
-            return Files.readAllBytes(file.toPath());
+            return Files.readAllBytes(argNotNull(file, "file").toPath());
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
@@ -243,7 +243,7 @@ public abstract class FileHelper {
      * @return a string containing all the chars in the path.
      */
     public static String readAllText(String resourcePath, String charset, int bufferSize) {
-        return new String(readAllBytes(resourcePath), Charset.forName(charset));
+        return new String(readAllBytes(resourcePath, bufferSize), Charset.forName(charset));
     }
 
     /**
@@ -328,7 +328,7 @@ public abstract class FileHelper {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, Charset.forName(charset)), bufferSize)) {
             return reader.lines().collect(Collectors.toList());
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new UncheckedIOException(e);
         }
     }
 
@@ -452,7 +452,7 @@ public abstract class FileHelper {
                 consumer.accept(line);
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new UncheckedIOException(e);
         }
     }
 

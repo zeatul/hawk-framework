@@ -16,10 +16,12 @@
 
 package glz.hawkframework.dao.pagination;
 
+import static glz.hawkframework.core.support.ArgumentSupport.argument;
+
 /**
  * This class is responsible for
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 public class DefaultOffsetAndLimit implements OffsetAndLimit {
     private long offset;
@@ -39,7 +41,7 @@ public class DefaultOffsetAndLimit implements OffsetAndLimit {
     }
 
     public void setOffset(long offset) {
-        this.offset = offset;
+        this.offset = argument(offset, o -> o >= 0, o -> "offset must be greater than or equal to 0.");
     }
 
     @Override
@@ -48,6 +50,6 @@ public class DefaultOffsetAndLimit implements OffsetAndLimit {
     }
 
     public void setLimit(long limit) {
-        this.limit = limit;
+        this.limit = argument(limit, l -> l >= 1, l -> "limit must be greater than or equal to 1.");
     }
 }

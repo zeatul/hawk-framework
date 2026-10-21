@@ -31,14 +31,14 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 /**
- * 这个类用来支持Spel表达式校验
- * <p>用来支持{@link ScriptAssert @ScriptAssert}和{@link ParameterScriptAssert @ParameterScriptAssert}</p>
- * <p>需要给{@link Validator}注册脚本执行器</p>
+ * This class is used to support SpEL expression validation.
+ * <p>It supports {@link ScriptAssert @ScriptAssert} and {@link ParameterScriptAssert @ParameterScriptAssert}.</p>
+ * <p>A script evaluator needs to be registered with the {@link Validator}.</p>
  * <pre>
  *     public static Validator createValidator() {
  *         return Validation.byProvider(HibernateValidator.class)
  *                 .configure()
- *                 // 注册你的 SpringELScriptEvaluatorFactory
+ *                 // register your SpringELScriptEvaluatorFactory
  *                 .scriptEvaluatorFactory(new SpringELScriptEvaluatorFactory())
  *                 .buildValidatorFactory()
  *                 .getValidator();
@@ -52,7 +52,7 @@ public class SpringELScriptEvaluatorFactory extends AbstractCachingScriptEvaluat
     @Override
     protected ScriptEvaluator createNewScriptEvaluator(String languageName) throws ScriptEvaluatorNotFoundException {
         if (!"spring".equalsIgnoreCase(languageName)) {
-            throw new IllegalStateException("Only Spring EL is supported");
+            throw new ScriptEvaluatorNotFoundException("Only Spring EL is supported");
         }
 
         return new SpringELScriptEvaluator();
@@ -66,7 +66,7 @@ public class SpringELScriptEvaluatorFactory extends AbstractCachingScriptEvaluat
         public Object evaluate(String script, Map<String, Object> bindings) throws ScriptEvaluationException {
             try {
                 Expression expression = expressionParser.parseExpression(script);
-                EvaluationContext context = new StandardEvaluationContext(bindings.values().iterator().next());
+                EvaluationContext context = bindings.isEmpty() ? new StandardEvaluationContext() : new StandardEvaluationContext(bindings.values().iterator().next());
                 for (Entry<String, Object> binding : bindings.entrySet()) {
                     context.setVariable(binding.getKey(), binding.getValue());
                 }

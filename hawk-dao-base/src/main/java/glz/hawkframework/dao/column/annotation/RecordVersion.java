@@ -20,9 +20,9 @@ import java.lang.annotation.*;
 
 /**
  * This annotation is responsible for self maintaining
- * <p>记录版本号，乐观锁必要</p>
+ * <p>Record version number, required for optimistic locking.</p>
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 @ColumnFunction
 @Target(ElementType.FIELD)

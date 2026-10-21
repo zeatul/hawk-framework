@@ -23,7 +23,7 @@ import java.util.function.Supplier;
 /**
  * This class provides some useful logic operating function.
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 public abstract class LogicSupport {
 
@@ -39,7 +39,7 @@ public abstract class LogicSupport {
         }
     }
 
-    public static <T> void consumeIfTrue(Supplier<Boolean> booleanSupplier, Runnable runnable) {
+    public static void consumeIfTrue(Supplier<Boolean> booleanSupplier, Runnable runnable) {
         if (booleanSupplier.get() != null && booleanSupplier.get()) {
             runnable.run();
         }
@@ -73,7 +73,7 @@ public abstract class LogicSupport {
      * @param exceptionSupplier         the supplier to return an exception to throw.
      */
     public static <K extends Throwable> void throwIfFalse(@Nonnull Supplier<Boolean> booleanExpressionSupplier, @Nonnull Supplier<? extends K> exceptionSupplier) throws K {
-        if (!booleanExpressionSupplier.get()) {
+        if (booleanExpressionSupplier.get() == null || !booleanExpressionSupplier.get()) {
             throw exceptionSupplier.get();
         }
     }
@@ -99,7 +99,7 @@ public abstract class LogicSupport {
      * @param exceptionSupplier         the supplier to return an exception to throw.
      */
     public static <K extends Throwable> void throwIfTrue(@Nonnull Supplier<Boolean> booleanExpressionSupplier, @Nonnull Supplier<? extends K> exceptionSupplier) throws K {
-        if (booleanExpressionSupplier.get()) {
+        if (booleanExpressionSupplier.get() != null && booleanExpressionSupplier.get()) {
             throw exceptionSupplier.get();
         }
     }

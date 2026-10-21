@@ -33,7 +33,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * This class is responsible for
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 @SpringBootTest(classes = TestConfig.class)
 public class I18NTest {

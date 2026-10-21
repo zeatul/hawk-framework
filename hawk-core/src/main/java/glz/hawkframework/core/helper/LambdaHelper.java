@@ -19,6 +19,7 @@ package glz.hawkframework.core.helper;
 import java.lang.invoke.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -26,7 +27,7 @@ import java.util.function.Supplier;
 /**
  * This class is responsible for
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 public abstract class LambdaHelper {
 
@@ -44,7 +45,7 @@ public abstract class LambdaHelper {
 
     /**
      * Convert the Getter method to a {@link Function} instance.
-     * <p>JDK8: 对public getter尝试用 LambdaMetafactory, 失败回退到反射</p>
+     * <p>JDK8: for public getters, try LambdaMetafactory, falling back to reflection on failure</p>
      *
      * @param <K> the type of object which holds the method.
      * @param <V> the type of return object.
@@ -54,9 +55,9 @@ public abstract class LambdaHelper {
     @SuppressWarnings("unchecked")
     public static <K, V> Function<K, V> createGetter(Method m) {
         try {
-            // 仅对 public 方法且可以用 publicLookup unreflect 的情况有效
+            // Only valid for public methods that can be unreflect-ed with publicLookup
             MethodHandle mh = PUBLIC_LOOKUP.unreflect(m);
-            // 规范化类型：(T) -> R
+            // Normalize the type: (T) -> R
             mh = mh.asType(MethodType.methodType(m.getReturnType(), m.getDeclaringClass()));
             MethodType invokedType = MethodType.methodType(Function.class); // () -> Function
             MethodType samMethodType = MethodType.methodType(m.getReturnType(), m.getDeclaringClass()); // Function.apply(Object)->Object (erased)
@@ -72,14 +73,14 @@ public abstract class LambdaHelper {
             MethodHandle factory = cs.getTarget();
             return (Function<K, V>) factory.invoke();
         } catch (Throwable t) {
-            // 回退反射
+            // Fall back to reflection
             return reflectionGetter(m);
         }
     }
 
     /**
      * Convert the Setter method to a {@link BiConsumer} instance.
-     * <p>JDK8: 对public setter尝试用 LambdaMetafactory, 失败回退到反射</p>
+     * <p>JDK8: for public setters, try LambdaMetafactory, falling back to reflection on failure</p>
      *
      * @param <K> the type of object which holds the method.
      * @param <V> the type of return object.
@@ -110,10 +111,14 @@ public abstract class LambdaHelper {
     }
 
     /**
-     * 反射回退Getter
+     * Reflection fallback getter.
+     * <p>Under JPMS on JDK 9+, if the module containing the target class does not {@code opens} the package,
+     * {@link Method#setAccessible(boolean)} throws {@code InaccessibleObjectException}.
+     * Here, symmetric access handling is performed for getters/setters, and an actionable hint is provided on failure.</p>
      */
     @SuppressWarnings("unchecked")
     private static <K, V> Function<K, V> reflectionGetter(Method m) {
+        trySetAccessible(m);
         return (K instance) -> {
             try {
                 return (V) m.invoke(instance);
@@ -125,10 +130,11 @@ public abstract class LambdaHelper {
 
 
     /**
-     * 反射回退Setter
+     * Reflection fallback setter.
+     * <p>Symmetric to {@link #reflectionGetter(Method)}, and likewise handles the JPMS access problem.</p>
      */
     private static <K, V> BiConsumer<K, V> reflectionSetter(Method m) {
-        m.setAccessible(true);
+        trySetAccessible(m);
         return (K instance, V value) -> {
             try {
                 m.invoke(instance, value);
@@ -136,6 +142,39 @@ public abstract class LambdaHelper {
                 throw new RuntimeException(e);
             }
         };
+    }
+
+    /**
+     * Attempts to elevate the method's access privileges.
+     * <p>In a JPMS environment on JDK 9+, if the module containing the method has not opened its package to the current module,
+     * {@code InaccessibleObjectException} is thrown (this class does not exist in JDK 8, so it is checked by class name
+     * to keep the bytecode compatible with JDK 8). In that case, if the method itself is public, no privilege elevation
+     * is needed and it can continue to be used; otherwise an exception with clear guidance is thrown.</p>
+     *
+     * @param m the target method
+     */
+    private static void trySetAccessible(Method m) {
+        if (m.isAccessible()) {
+            return;
+        }
+        try {
+            m.setAccessible(true);
+        } catch (RuntimeException e) {
+            // JDK 9+ : InaccessibleObjectException, checked by class name for JDK 8 compilation compatibility
+            if ("java.lang.reflect.InaccessibleObjectException".equals(e.getClass().getName())) {
+                if (Modifier.isPublic(m.getModifiers()) && Modifier.isPublic(m.getDeclaringClass().getModifiers())) {
+                    // A public method needs no privilege elevation; return directly
+                    return;
+                }
+                throw new IllegalStateException(String.format(
+                    "Cannot access method '%s.%s'. The declaring class/module does not open its package to this module. " +
+                        "Please make the method public, or add 'opens %s;' (or use --add-opens) for the module that declares %s.",
+                    m.getDeclaringClass().getName(), m.getName(),
+                    m.getDeclaringClass().getPackage() == null ? "" : m.getDeclaringClass().getPackage().getName(),
+                    m.getDeclaringClass().getName()), e);
+            }
+            throw e;
+        }
     }
 }
 

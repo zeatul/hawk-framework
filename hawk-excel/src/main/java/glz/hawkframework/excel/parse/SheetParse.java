@@ -31,7 +31,7 @@ public class SheetParse {
     private ColumnParse[] columns;
     private List<ColumnParse> rowNoColumns;
     /**
-     * Sheet对应的接收Class类型
+     * The receiving Class type corresponding to the sheet
      */
     private Class<?> type;
 

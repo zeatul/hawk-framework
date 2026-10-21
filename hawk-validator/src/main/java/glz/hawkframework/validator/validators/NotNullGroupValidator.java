@@ -25,6 +25,7 @@ import org.springframework.expression.spel.SpelCompilerMode;
 import org.springframework.expression.spel.SpelParserConfiguration;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 
+import javax.validation.ConstraintDeclarationException;
 import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorContext;
 import java.util.Map;
@@ -33,17 +34,19 @@ import java.util.concurrent.ConcurrentHashMap;
 import static glz.hawkframework.validator.constraints.NotNullGroup.DEFAULT_MESSAGE_TEMPLATE;
 
 /**
- * 这个类用来校验一个对象的多个属性符合某种特定的非空条件
+ * This class is used to validate that multiple fields of an object satisfy a certain not-null condition.
  *
  * @author Zhang Peng
  */
 public class NotNullGroupValidator implements ConstraintValidator<NotNullGroup, Object> {
 
-    private final ExpressionParser expressionParser = new SpelExpressionParser(new SpelParserConfiguration(SpelCompilerMode.MIXED,   // 编译模式
-        null  // 类加载器，可为 null
+    private final ExpressionParser expressionParser = new SpelExpressionParser(new SpelParserConfiguration(SpelCompilerMode.MIXED,   // compiler mode
+        null  // class loader, may be null
     ));
 
-    private final Map<String, Expression> expressionCache = new ConcurrentHashMap<>();
+    // Use a simple LRU cache, to prevent malicious/dynamic field paths from causing OOM
+    // At most 1024 expressions are cached; when exceeded, they are cleared
+    private final Map<String, Expression> expressionCache = new LruExpressionCache(1024);
 
     private NotNullGroup notNullGroup;
 
@@ -63,7 +66,11 @@ public class NotNullGroupValidator implements ConstraintValidator<NotNullGroup, 
             String fieldPath = fieldPaths[i];
             if (StringHelper.isBlank(fieldPath)) throw new IllegalStateException("Found blank element in the fields property of NoNullGroup.");
             Expression expression = expressionCache.computeIfAbsent(fieldPath, expressionParser::parseExpression);
-            objects[i] = expression.getValue(value);
+            try {
+                objects[i] = expression.getValue(value);
+            } catch (Exception e) {
+                throw new ConstraintDeclarationException("SpEL expression '" + fieldPath + "' evaluation failed", e);
+            }
         }
 
         boolean isValid = verify(objects);
@@ -72,18 +79,18 @@ public class NotNullGroupValidator implements ConstraintValidator<NotNullGroup, 
             if (notNullGroup.message().equals(DEFAULT_MESSAGE_TEMPLATE)) {
                 context.disableDefaultConstraintViolation();
 
-                // 转换为Hibernate特有的Context
+                // Convert to the Hibernate-specific Context
                 HibernateConstraintValidatorContext hibernateContext = context.unwrap(
                     HibernateConstraintValidatorContext.class
                 );
 
-                //添加动态变量供消息模板使用
-//                hibernateContext.addExpressionVariable("fieldNames", String.join(", ", notNullGroup.fields())); // 只适用于EL
+                // Add dynamic variables for use by the message template
+//                hibernateContext.addExpressionVariable("fieldNames", String.join(", ", notNullGroup.fields())); // only applies to EL
                 hibernateContext.addMessageParameter("fieldNames", String.join(", ", notNullGroup.fields()));
 
-                // 转换模板
-                hibernateContext.buildConstraintViolationWithTemplate(String.format(notNullGroup.message(), notNullGroup.type())) // 模板用{}包起来，旧从配置文件找，否则就是本身
-//                    .enableExpressionLanguage() //为当前这个自定义错误消息启用EL表达式解析能力。buildConstraintViolationWithTemplate默认不启用EL
+                // Convert the template
+                hibernateContext.buildConstraintViolationWithTemplate(String.format(notNullGroup.message(), notNullGroup.type())) // the template is wrapped in {}, so it is looked up from the configuration file first, otherwise it is used as is
+//                    .enableExpressionLanguage() // enables EL expression parsing for this custom error message. buildConstraintViolationWithTemplate does not enable EL by default
                     .addConstraintViolation();
             }
         }
@@ -103,7 +110,7 @@ public class NotNullGroupValidator implements ConstraintValidator<NotNullGroup, 
                     if (object == null) return false;
                 }
                 return true;
-            case AT_LEAST_ONE_IS_NO_NULL:
+            case AT_LEAST_ONE_IS_NOT_NULL:
                 for (Object object : objects) {
                     if (object != null) return true;
                 }
@@ -136,6 +143,26 @@ public class NotNullGroupValidator implements ConstraintValidator<NotNullGroup, 
             }
             default:
                 throw new IllegalStateException("Unsupported NotNullType: " + notNullGroup.type().name());
+        }
+    }
+
+    /**
+     * A simple LRU cache implementation, to prevent unbounded growth.
+     */
+    private static class LruExpressionCache extends ConcurrentHashMap<String, Expression> {
+        private final int maxSize;
+
+        LruExpressionCache(int maxSize) {
+            this.maxSize = maxSize;
+        }
+
+        @Override
+        public Expression put(String key, Expression value) {
+            if (size() >= maxSize) {
+                // Simple strategy: clear half (in real production, Caffeine or LinkedHashMap is recommended for a true LRU)
+                clear();
+            }
+            return super.put(key, value);
         }
     }
 

@@ -25,7 +25,7 @@ import static java.lang.annotation.ElementType.FIELD;
 
 /**
  * This annotation is responsible for
- * <p>被{@code ExcelColumn}注解的字段，负责接收指定索引所在的column的数据</p>
+ * <p>Fields annotated with {@code ExcelColumn} are responsible for receiving the data of the column at the specified index</p>
  *
  * @author Zhang Peng
  */
@@ -35,38 +35,38 @@ import static java.lang.annotation.ElementType.FIELD;
 public @interface ExcelColumn {
 
     /**
-     * Excel的列索引
-     * <p>索引号从{@code 0}开始计算</p>
+     * The column index of the Excel column
+     * <p>The index starts from {@code 0}</p>
      */
     int index() default  -1;
 
     /**
-     * Excel的Column名称
-     * <p>导出时，可以作为表头</p>
-     * <p>读文件，只需要取数据内容时，可以为空</p>
+     * The name of the Excel column
+     * <p>When exporting, it can be used as the header</p>
+     * <p>When reading a file and only the data content is needed, it may be empty</p>
      */
     String name() default "";
 
     /**
-     * 该属性的值用来提供格式化字符串
+     * The value of this attribute is used to provide the format string
      */
     String format() default "";
 
     /**
-     * 是否是行号
-     * <p>如果这个属性的值为{@code true}，则表示该列是行号，忽略{@link #index()}的值</p>
-     * <p>默认值为{@code false}</p>
-     * <p>行号从{@code 0}开始计算</p>
+     * Whether it is a row number
+     * <p>If the value of this attribute is {@code true}, it means this column is a row number and the value of {@link #index()} is ignored</p>
+     * <p>The default value is {@code false}</p>
+     * <p>The row number starts from {@code 0}</p>
      */
     boolean isRowNo() default false;
 
     /**
-     * 对应的excel column是否可读
+     * Whether the corresponding excel column is readable
      */
     boolean readable() default true;
 
     /**
-     * 对应的excel column是否可写
+     * Whether the corresponding excel column is writable
      */
     boolean writable() default true;
 }

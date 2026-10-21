@@ -19,7 +19,7 @@ package glz.hawkframework.dao.process;
 /**
  * This interface is responsible for
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 public interface UpdateProcessor {
 

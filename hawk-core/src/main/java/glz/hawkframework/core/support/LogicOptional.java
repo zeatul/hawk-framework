@@ -26,7 +26,7 @@ import java.util.function.Supplier;
 /**
  * This class is a mimic of {@link Optional} and provides some useful logic methods to operate the {@code value} of it.
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 public class LogicOptional<T> {
     private static final LogicOptional<?> EMPTY = new LogicOptional<>();

@@ -20,10 +20,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import static glz.hawkframework.core.support.ArgumentSupport.argNotNull;
+
 /**
  * This class is responsible for
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 public class UpdateParameter {
     public final Object recordVersion;
@@ -74,12 +76,12 @@ public class UpdateParameter {
         }
 
         public Builder addParams(Map<String,Object> params) {
-            this.params.putAll(params);
+            this.params.putAll(argNotNull(params, "params"));
             return this;
         }
 
         public Builder addParam(String key, Object value) {
-            this.params.put(key, value);
+            this.params.put(argNotNull(key, "key"), value);
             return this;
         }
 

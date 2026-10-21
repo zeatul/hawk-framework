@@ -17,7 +17,10 @@
 package glz.hawkframework.core.asyc;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -27,7 +30,8 @@ import java.util.function.Function;
 
 /**
  * This class is responsible for
- * <p>封装 CompletableFuture，提供便捷的结果获取和回调方法。</p>
+ * <p>Wraps CompletableFuture, providing convenient result retrieval and callback methods.
+ * <p>Preserves exception stack traces and supports cancellation propagation.</p>
  *
  * @author Zhang Peng
  */
@@ -35,84 +39,134 @@ public class AsyncResult<T> {
     private final CompletableFuture<T> completableFuture;
 
     /**
-     * 构造 AsyncResult
+     * Constructs an AsyncResult.
      *
-     * @param completableFuture CompletableFuture 实例，不可为空
+     * @param completableFuture the CompletableFuture instance, must not be null
      */
     public AsyncResult(@Nonnull CompletableFuture<T> completableFuture) {
         this.completableFuture = completableFuture;
     }
 
     /**
-     * 阻塞等待结果
+     * Blocks waiting for the result, preserving the original exception stack trace.
      *
-     * @return 任务结果
-     * @throws ExecutionException   如果任务执行异常
-     * @throws InterruptedException 如果等待被中断
+     * @return the task result
+     * @throws ExecutionException   if the task failed (the cause contains the original exception)
+     * @throws InterruptedException if the wait is interrupted
      */
     public T get() throws ExecutionException, InterruptedException {
-        return completableFuture.get();
+        try {
+            return completableFuture.get();
+        } catch (ExecutionException e) {
+            // Preserve the original exception stack trace; do not wrap CompletionException
+            Throwable cause = e.getCause();
+            if (cause instanceof CompletionException) {
+                throw new ExecutionException(cause.getCause());
+            }
+            throw e;
+        }
     }
 
     /**
-     * 阻塞等待结果（带超时）
+     * Blocks waiting for the result (with timeout), preserving the original exception stack trace.
      *
-     * @param timeout 超时时间
-     * @param unit    时间单位
-     * @return 任务结果
-     * @throws ExecutionException   如果任务执行异常
-     * @throws InterruptedException 如果等待被中断
-     * @throws TimeoutException     如果超时
+     * @param timeout the timeout
+     * @param unit    the time unit
+     * @return the task result
+     * @throws ExecutionException   if the task failed
+     * @throws InterruptedException if the wait is interrupted
+     * @throws TimeoutException     if the timeout elapses
      */
     public T get(long timeout, TimeUnit unit) throws ExecutionException, InterruptedException, TimeoutException {
-        return completableFuture.get(timeout, unit);
+        try {
+            return completableFuture.get(timeout, unit);
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof CompletionException) {
+                throw new ExecutionException(cause.getCause());
+            }
+            throw e;
+        }
     }
 
     /**
-     * 非阻塞获取结果（可能为 null）
+     * Non-blocking retrieval of the result (may be null).
      *
-     * @return 任务结果，如果未完成则返回 null
+     * @return the task result, or null if not yet completed
      */
     public T getNow() {
         return completableFuture.getNow(null);
     }
 
     /**
-     * 检查任务是否完成
+     * Checks whether the task is complete.
      */
     public boolean isDone() {
         return completableFuture.isDone();
     }
 
     /**
-     * 检查任务是否被取消
+     * Checks whether the task was cancelled.
      */
     public boolean isCancelled() {
         return completableFuture.isCancelled();
     }
 
     /**
-     * 检查任务是否正常完成（无异常）
+     * Checks whether the task completed normally (no exception, not cancelled).
      */
     public boolean isCompletedNormally() {
         return completableFuture.isDone() && !completableFuture.isCompletedExceptionally() && !completableFuture.isCancelled();
     }
 
     /**
-     * 取消任务
+     * Checks whether the task completed exceptionally.
+     */
+    public boolean isCompletedExceptionally() {
+        return completableFuture.isCompletedExceptionally();
+    }
+
+    /**
+     * Gets the exception cause (if completed exceptionally).
      *
-     * @param mayInterruptIfRunning 是否中断正在执行的任务
-     * @return true 如果取消成功
+     * @return the exception cause, or null if it did not complete exceptionally
+     */
+    @Nullable
+    public Throwable getException() {
+        if (completableFuture.isCompletedExceptionally()) {
+            try {
+                completableFuture.get();
+                return null;
+            } catch (ExecutionException e) {
+                Throwable cause = e.getCause();
+                if (cause instanceof CompletionException) {
+                    return cause.getCause();
+                }
+                return cause;
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return e;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Cancels the task.
+     * <p>Cancellation propagates to subsequent tasks in the chain</p>
+     *
+     * @param mayInterruptIfRunning whether to interrupt a task that is currently running
+     * @return true if the cancellation succeeded
      */
     public boolean cancel(boolean mayInterruptIfRunning) {
         return completableFuture.cancel(mayInterruptIfRunning);
     }
 
     /**
-     * 注册成功回调
+     * Registers a success callback.
      *
-     * @param consumer 结果处理器
-     * @return this（支持链式调用）
+     * @param consumer the result handler
+     * @return this (supports chained calls)
      */
     public AsyncResult<T> onSuccess(Consumer<T> consumer) {
         completableFuture.thenAccept(consumer);
@@ -120,30 +174,39 @@ public class AsyncResult<T> {
     }
 
     /**
-     * 注册失败回调
+     * Registers a failure callback (preserving the original exception).
      *
-     * @param consumer 异常处理器
-     * @return this（支持链式调用）
+     * @param consumer the exception handler
+     * @return this (supports chained calls)
      */
     public AsyncResult<T> onFailure(Consumer<Throwable> consumer) {
         completableFuture.exceptionally(throwable -> {
-            consumer.accept(throwable);
+            // Unwrap CompletionException and pass the original exception
+            Throwable cause = throwable;
+            if (throwable instanceof CompletionException) {
+                cause = throwable.getCause();
+            }
+            consumer.accept(cause);
             return null;
         });
         return this;
     }
 
     /**
-     * 注册成功和失败回调
+     * Registers both success and failure callbacks.
      *
-     * @param successConsumer 成功回调
-     * @param failureConsumer 失败回调
-     * @return this（支持链式调用）
+     * @param successConsumer the success callback
+     * @param failureConsumer the failure callback
+     * @return this (supports chained calls)
      */
     public AsyncResult<T> onComplete(Consumer<T> successConsumer, Consumer<Throwable> failureConsumer) {
         completableFuture.whenComplete((result, throwable) -> {
             if (throwable != null) {
-                failureConsumer.accept(throwable);
+                Throwable cause = throwable;
+                if (throwable instanceof CompletionException) {
+                    cause = throwable.getCause();
+                }
+                failureConsumer.accept(cause);
             } else {
                 successConsumer.accept(result);
             }
@@ -152,22 +215,23 @@ public class AsyncResult<T> {
     }
 
     /**
-     * 转换结果
+     * Transforms the result.
      *
-     * @param mapper 转换函数
-     * @param <R>    新结果类型
-     * @return 新的 AsyncResult
+     * @param mapper the mapping function
+     * @param <R>    the new result type
+     * @return the new AsyncResult
      */
     public <R> AsyncResult<R> thenApply(Function<T, R> mapper) {
-        return new AsyncResult<>(completableFuture.thenApplyAsync(mapper));
+        return new AsyncResult<>(completableFuture.thenApply(mapper));
     }
 
     /**
-     * 链式执行另一个异步任务
+     * Chains the execution of another asynchronous task.
+     * <p>Cancellation propagates automatically to subsequent tasks</p>
      *
-     * @param mapper 返回新 AsyncResult 的函数
-     * @param <R>    新结果类型
-     * @return 新的 AsyncResult
+     * @param mapper the function returning a new AsyncResult
+     * @param <R>    the new result type
+     * @return the new AsyncResult
      */
     public <R> AsyncResult<R> thenCompose(Function<T, AsyncResult<R>> mapper) {
         CompletableFuture<R> composed = completableFuture.thenCompose(result -> {
@@ -177,9 +241,8 @@ public class AsyncResult<T> {
         return new AsyncResult<>(composed);
     }
 
-
     /**
-     * 获取原始的 CompletableFuture
+     * Gets the underlying CompletableFuture.
      */
     public CompletableFuture<T> getFuture() {
         return completableFuture;

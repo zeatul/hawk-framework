@@ -16,6 +16,8 @@
 
 package glz.hawkframework.core.tuple;
 
+import java.util.Objects;
+
 /**
  * This class is responsible for
  *
@@ -32,5 +34,23 @@ public class Tuple2<T1, T2> {
 
     public static <T1, T2> Tuple2<T1, T2> of(T1 t1, T2 t2) {
         return new Tuple2<>(t1, t2);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Tuple2)) return false;
+        Tuple2<?, ?> that = (Tuple2<?, ?>) o;
+        return Objects.equals(t1, that.t1) && Objects.equals(t2, that.t2);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(t1, t2);
+    }
+
+    @Override
+    public String toString() {
+        return "Tuple2{t1=" + t1 + ", t2=" + t2 + '}';
     }
 }

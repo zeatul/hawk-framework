@@ -31,7 +31,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 /**
  * This annotation is responsible for
- * <p>校验给定值是不是枚举的名称之一</p>
+ * <p>Validating whether the given value is one of the enum's names.</p>
  *
  * @author Zhang Peng
  */
@@ -39,7 +39,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 @Retention(RUNTIME)
 @Repeatable(EnumName.List.class)
 @Documented
-@Constraint(validatedBy = EnumNameValidator.EnumValueValidatorForCharSequence.class)
+@Constraint(validatedBy = EnumNameValidator.EnumNameValidatorForCharSequence.class)
 public @interface EnumName {
 
     String message() default "{glz.hawkframework.validator.constraints.EnumName.message}";

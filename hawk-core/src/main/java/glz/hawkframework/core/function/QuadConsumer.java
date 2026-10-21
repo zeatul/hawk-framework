@@ -21,7 +21,7 @@ import java.util.Objects;
 /**
  * This interface is responsible for
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 @FunctionalInterface
 public interface QuadConsumer<T, U, V, W> {

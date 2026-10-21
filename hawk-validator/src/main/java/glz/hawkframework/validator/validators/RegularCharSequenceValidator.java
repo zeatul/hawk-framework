@@ -12,7 +12,7 @@ import static glz.hawkframework.validator.constraints.RegularCharSequence.DEFAUL
  * This class is responsible for validating the object annotated by
  * {@link RegularCharSequence}
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 public class RegularCharSequenceValidator implements ConstraintValidator<RegularCharSequence, CharSequence> {
 

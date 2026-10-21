@@ -18,7 +18,7 @@ import java.math.BigInteger;
  * Segment 5: sequence in a millisecond, default set to 16-bit (65536 at most).
  *
  * @author Leavy
- * @author Hawk
+ * @author Zhang Peng
  */
 public class SnowflakeIdGeneratorForBigInteger extends AbstractSnowflakeIdGenerator<BigInteger> {
 

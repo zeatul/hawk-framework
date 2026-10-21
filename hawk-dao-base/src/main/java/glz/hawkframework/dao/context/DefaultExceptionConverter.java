@@ -23,6 +23,8 @@ import glz.hawkframework.dao.exception.UniqueViolationException;
 import org.springframework.dao.DuplicateKeyException;
 
 import java.sql.SQLIntegrityConstraintViolationException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -32,7 +34,7 @@ import static glz.hawkframework.core.support.ArgumentSupport.argNotNull;
 /**
  * This class is responsible for
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 public class DefaultExceptionConverter implements ExceptionConverter {
 
@@ -60,7 +62,20 @@ public class DefaultExceptionConverter implements ExceptionConverter {
     }
 
     protected Map<String, Object> params(RepositoryContext repositoryContext) {
-        return repositoryContext.getRepositoryMethodParams().stream().collect(Collectors.toMap(Param::getParamName, Param::getParamValues));
+        return repositoryContext.getRepositoryMethodParams().stream().collect(Collectors.toMap(Param::getParamName, Param::getParamValues, DefaultExceptionConverter::mergeParamValues));
+    }
+
+    private static Object mergeParamValues(Object value1, Object value2) {
+        if (value1 == value2) return value1;
+        if (value1 instanceof List) {
+            List<Object> merged = new ArrayList<>((List<?>) value1);
+            merged.add(value2);
+            return merged;
+        }
+        List<Object> merged = new ArrayList<>();
+        merged.add(value1);
+        merged.add(value2);
+        return merged;
     }
 
 
@@ -69,11 +84,8 @@ public class DefaultExceptionConverter implements ExceptionConverter {
         argNotNull(repositoryContext, "repositoryContext");
         Exception initCause = repositoryContext.getInitCause();
         if (initCause != null) {
-            if (initCause instanceof DuplicateKeyException) {
+            if (initCause instanceof DuplicateKeyException || initCause instanceof SQLIntegrityConstraintViolationException) {
                 return new UniqueViolationException(initCause, uniqueViolationExceptionMessageSupplier, repositoryContext.getPoClass(), params(repositoryContext));
-            }else if (initCause instanceof SQLIntegrityConstraintViolationException){
-                SQLIntegrityConstraintViolationException e = (SQLIntegrityConstraintViolationException) initCause;
-
             }
             else if (initCause instanceof RuntimeException) {
                 return (RuntimeException) initCause;

@@ -25,11 +25,12 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.time.Duration;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 /**
  * This class is responsible for
- * <p>基于Caffeine封装</p>
- * <p>优于Guava</p>
+ * <p>Wraps Caffeine</p>
+ * <p>Better than Guava</p>
  *
  * @author Zhang Peng
  */
@@ -49,6 +50,11 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
     @Override
     public void put(@NonNull K key, @NonNull V value) {
         cache.put(key, value);
+    }
+
+    @Override
+    public @Nullable V computeIfAbsent(@NonNull K key, @NonNull Function<? super K, ? extends V> mappingFunction) {
+        return cache.get(key, mappingFunction::apply);
     }
 
     @Override
@@ -101,9 +107,13 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
         }
     }
 
+    public static <K, V> CaffeineCacheBuilder<K, V> builder() {
+        return new CaffeineCacheBuilder<>();
+    }
+
     public static class CreateExpiry<K, V> implements Expiry<K, V> {
         /**
-         * 纳秒
+         * Nanoseconds
          */
         private final long base;
 
@@ -118,7 +128,7 @@ public class CaffeineCache<K, V> implements Cache<K, V> {
 
         @Override
         public long expireAfterUpdate(@NonNull K k, @NonNull V v, long l, @NonNegative long l1) {
-            return Long.MAX_VALUE;
+            return base + ThreadLocalRandom.current().nextLong(base);
         }
 
         @Override

@@ -27,9 +27,9 @@ import java.time.LocalDate;
  * @author Zhang Peng
  */
 @ScriptAssert(
-    lang = "spring",  // 指定使用 Spring EL
-    script = "#root.startDate < #root.endDate", // 这个也对
-//    script = "startDate < endDate", // 这个也对
+    lang = "spring",  // Specify/use Spring EL
+    script = "#root.startDate < #root.endDate", // This also works
+//    script = "startDate < endDate", // This also works
     message = "开始日期必须在结束日期之前"
 )
 public class ObjectForScriptAssist {

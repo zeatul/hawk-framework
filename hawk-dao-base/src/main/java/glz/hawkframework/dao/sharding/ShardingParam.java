@@ -27,11 +27,11 @@ import static glz.hawkframework.core.support.ArgumentSupport.argNotNull;
  */
 public class ShardingParam {
     /**
-     * 表名称
+     * Table name
      */
     private final String tableName;
     /**
-     * 用来生成分片键的列名称
+     * Name of the column used to generate the sharding key
      */
     private final String columnName;
 
@@ -42,7 +42,7 @@ public class ShardingParam {
     }
 
     /**
-     * 用来生成分片建的列值
+     * Column value used to generate the sharding key
      */
     private final Object columnValue;
 

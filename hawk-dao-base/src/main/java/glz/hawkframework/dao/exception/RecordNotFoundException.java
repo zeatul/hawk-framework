@@ -26,7 +26,7 @@ import static glz.hawkframework.core.support.ArgumentSupport.argNotNull;
 /**
  * Throws this exception while can't find the record in the database.
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 public class RecordNotFoundException extends DataAccessException {
     public final static String DEFAULT_ERROR_MESSAGE = "The record can't be found in the database.";
@@ -44,5 +44,9 @@ public class RecordNotFoundException extends DataAccessException {
 
     public RecordNotFoundException(Map<String, Object> params) {
         super(DEFAULT_MESSAGE_SUPPLIER, params);
+    }
+
+    public RecordNotFoundException(Class<?> poClass, Map<String, Object> params) {
+        this(DEFAULT_MESSAGE_SUPPLIER, poClass, params);
     }
 }

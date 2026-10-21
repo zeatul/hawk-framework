@@ -21,7 +21,7 @@ import java.lang.annotation.*;
 
 /**
  * This annotation is responsible for
- * <p>被其注解的注解用来提供column相关的功能</p>
+ * <p>Annotations annotated by this annotation are used to provide column-related functionality.</p>
  *
  * @author Zhang Peng
  */

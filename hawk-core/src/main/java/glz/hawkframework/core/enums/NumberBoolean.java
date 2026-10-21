@@ -29,7 +29,7 @@ import static glz.hawkframework.core.support.StateSupport.stateNotNull;
 /**
  * {@link NumberBoolean} defines {@code 1} as true and {@code 0} as false.
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 public enum NumberBoolean {
 

@@ -26,13 +26,10 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
 import static java.lang.annotation.ElementType.*;
-import static java.lang.annotation.ElementType.CONSTRUCTOR;
-import static java.lang.annotation.ElementType.PARAMETER;
-import static java.lang.annotation.ElementType.TYPE_USE;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 /**
- * 这个注解用来校验一个对象的两个属性的比较结果符合预期
+ * This annotation is used to validate that the comparison result of two fields of an object matches the expectation.
  *
  * @author Zhang Peng
  */
@@ -52,17 +49,17 @@ public @interface CompareFields {
     Class<? extends Payload>[] payload() default {};
 
     /**
-     * 比较的左值的属性全路径
+     * The full property path of the left value being compared.
      */
     String left();
 
     /**
-     * 比较的右值的属性全路径
+     * The full property path of the right value being compared.
      */
     String right();
 
     /**
-     * 预期结果
+     * The expected result.
      */
     CompareResult expectedResult();
 
@@ -81,26 +78,32 @@ public @interface CompareFields {
     enum CompareResult {
         /**
          * left less than right
+         * <p>If either value is {@code null}, validation passes (no error is reported).</p>
          */
         LESS,
         /**
          * left greater than right
+         * <p>If either value is {@code null}, validation passes (no error is reported).</p>
          */
         GREATER,
         /**
          * left equal to right
+         * <p>If either value is {@code null}, validation passes (no error is reported).</p>
          */
         EQUAL,
         /**
          * left less or equal to right
+         * <p>If either value is {@code null}, validation passes (no error is reported).</p>
          */
         LESS_OR_EQUAL,
         /**
          * left greater or equal to right
+         * <p>If either value is {@code null}, validation passes (no error is reported).</p>
          */
         GREATER_OR_EQUAL,
         /**
          * left not equal to right
+         * <p>If either value is {@code null}, validation passes (no error is reported).</p>
          */
         NOT_EQUAL
     }

@@ -27,13 +27,10 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
 import static java.lang.annotation.ElementType.*;
-import static java.lang.annotation.ElementType.CONSTRUCTOR;
-import static java.lang.annotation.ElementType.PARAMETER;
-import static java.lang.annotation.ElementType.TYPE_USE;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 /**
- * 这个注解自己定义校验的方法，校验的消息模板，因此可以校验任何复杂情况
+ * This annotation defines its own validation method and validation message template, so it can validate any complex case.
  *
  * @author Zhang Peng
  */
@@ -53,11 +50,13 @@ public @interface UniversalCheck {
     Class<? extends Payload>[] payload() default {};
 
     /**
-     * 校验方法的名称
-     * <p>{@link UniversalCheckValidator}通过该名称来定位校验方法和校验消息模板</p>
-     * <p>定位校验方法是，用来作为{@link UniversalCheckSupport#loadChecker}方法的输入参数</p>
-     * <p>定位校验方法是，用来作为{@link UniversalCheckSupport#findMessageParameterSupplier}方法的输入参数</p>
-     * <p>定位消息模板时，用来替换{@link #DEFAULT_MESSAGE_TEMPLATE}里的{@code %s}</p>
+     * The name of the validation method.
+     * <p>{@link UniversalCheckValidator} uses this name to locate the validation method and the validation message template.</p>
+     * <p>When locating the validation method, it is used as the input parameter of the {@link UniversalCheckSupport#loadChecker} method.</p>
+     * <p>When locating the validation method, it is used as the input parameter of the {@link UniversalCheckSupport#findMessageParameterSupplier} method.</p>
+     * <p>When locating the message template, it is used to replace the {@code %s} in {@link #DEFAULT_MESSAGE_TEMPLATE}.</p>
+     * <p><b>Naming convention: a fully-qualified name must be used</b> (for example {@code "com.example.order.OrderAgeCheck"}),
+     * to avoid conflicts when validators with the same name are registered by different modules/applications.</p>
      */
     String checkerName();
 

@@ -45,7 +45,7 @@ public class TestConfig {
 //    }
 
     @Bean
-    public EnumHelper initEnumHelper() {
+    public void initEnumHelper() {
 
         ReloadableResourceBundleMessageSource messageSource = new ReloadableResourceBundleMessageSource();
         messageSource.setDefaultEncoding("UTF-8");
@@ -60,9 +60,7 @@ public class TestConfig {
             }
         };
 
-        return new EnumHelper(i18NMessageSource){
-
-        };
+        EnumHelper.initialize(i18NMessageSource);
 
     }
 }

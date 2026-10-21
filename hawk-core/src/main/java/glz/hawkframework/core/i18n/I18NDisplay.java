@@ -26,7 +26,7 @@ import static glz.hawkframework.core.support.ArgumentSupport.argNotBlank;
 /**
  * This class is responsible for
  * <p></p>
- * <p>需要初始化{@link I18NMessageSourceHolder}</p>
+ * <p>Requires initializing {@link I18NMessageSourceHolder}</p>
  *
  * @author Zhang Peng
  */

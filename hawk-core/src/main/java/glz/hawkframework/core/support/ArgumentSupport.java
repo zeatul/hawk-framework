@@ -31,7 +31,7 @@ import java.util.function.Supplier;
  * Miscellaneous argument check methods.
  * <p>Mainly for internal use within the framework.</p>
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 public class ArgumentSupport {
 
@@ -41,8 +41,8 @@ public class ArgumentSupport {
     public static String NOT_EMPTY_WITH_PARAMETER = "The parameter[%s] must not be empty.";
     public static String NOT_BLANK = "The parameter must not be blank.";
     public static String NOT_BLANK_WITH_PARAMETER = "The parameter[%s] must not be blank.";
-    public static String GREATER_THAN = "The parameter[%s] must not be greater than %s.";
-    public static String GREATER_THAN_OR_EQUAL_TO = "The parameter[%s] must not be greater than or equal to %s.";
+    public static String GREATER_THAN = "The parameter[%s] must be greater than %s.";
+    public static String GREATER_THAN_OR_EQUAL_TO = "The parameter[%s] must be greater than or equal to %s.";
 
     /**
      * Throws an {@link IllegalArgumentException} if the input parameter 'arg' is {@code null},
@@ -288,7 +288,7 @@ public class ArgumentSupport {
      */
     @Nonnull
     public static String argNotBlank(String arg) throws IllegalArgumentException {
-        if (ObjectHelper.isEmpty(arg)) {
+        if (StringHelper.isBlank(arg)) {
             throw new IllegalArgumentException(NOT_BLANK);
         }
         return arg;
@@ -359,12 +359,13 @@ public class ArgumentSupport {
      * @return the input parameter 'arg' directly
      */
     public static <K, T extends Iterable<K>> T argumentElement(@Nonnull T arg, @Nonnull Function<K, Boolean> argElementChecker, @Nonnull BiFunction<K, Integer, String> messageSupplier) throws IllegalArgumentException {
-        int index = -1;
+        int index = 0;
         for (K k : argNotNull(arg)) {
             Boolean b = argElementChecker.apply(k);
             if (b == null || !b) {
                 throw new IllegalArgumentException(messageSupplier.apply(k, index));
             }
+            index++;
         }
         return arg;
     }
@@ -388,7 +389,8 @@ public class ArgumentSupport {
      * @param messageSupplier the supplier to provide the message for the exception.
      */
     public static void argTrue(@Nonnull Supplier<Boolean> booleanSupplier, @Nonnull Supplier<String> messageSupplier) throws IllegalArgumentException {
-        if (booleanSupplier.get() == null || !booleanSupplier.get()) {
+        Boolean value = booleanSupplier.get();
+        if (value == null || !value) {
             throw new IllegalArgumentException(messageSupplier.get());
         }
     }
@@ -412,7 +414,8 @@ public class ArgumentSupport {
      * @param messageSupplier the supplier to provide the message for the exception.
      */
     public static void argFalse(@Nonnull Supplier<Boolean> booleanSupplier, @Nonnull Supplier<String> messageSupplier) throws IllegalArgumentException {
-        if (booleanSupplier.get() != null && booleanSupplier.get()) {
+        Boolean value = booleanSupplier.get();
+        if (value != null && value) {
             throw new IllegalArgumentException(messageSupplier.get());
         }
     }

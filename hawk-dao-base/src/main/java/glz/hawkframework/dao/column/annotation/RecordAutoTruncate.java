@@ -21,7 +21,7 @@ import java.lang.annotation.*;
 
 /**
  * This annotation is responsible for self maintaining
- * <p>自动截断超过长度的字符串的字段</p>
+ * <p>Field for automatically truncating strings that exceed the length.</p>
  *
  * @author Zhang Peng
  */

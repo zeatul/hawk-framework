@@ -21,18 +21,18 @@ import java.util.function.Supplier;
 
 /**
  * This interface is responsible for
- * <p>单种类对象查询执行器</p>
+ * <p>A single-kind object query executor</p>
  *
  * @author Zhang Peng
  */
 public interface CacheExecutor<K,V> {
 
     /**
-     * 执行带缓存的查询
+     * Executes a query with caching.
      *
-     * @param key    缓存键
-     * @param loader 数据加载器
-     * @return 查询结果
+     * @param key    the cache key
+     * @param loader the data loader
+     * @return the query result
      */
      V execute(K key, Supplier<V> loader);
 

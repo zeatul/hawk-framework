@@ -23,11 +23,12 @@ import glz.hawkframework.dao.column.annotation.ColumnFunction;
 import org.springframework.core.annotation.MergedAnnotations;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.lang.annotation.Annotation;
-import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static glz.hawkframework.core.support.ArgumentSupport.argNotNull;
 
@@ -41,15 +42,29 @@ public class PojoFieldParser<K> {
 
     private final Class<K> pojoClass;
 
+    // Class-level parse result cache, to avoid repeated reflection parsing
+    private static final ConcurrentHashMap<Class<?>, Object> PARSE_CACHE = new ConcurrentHashMap<>();
+
     public PojoFieldParser(@Nonnull Class<K> pojoClass) {
         this.pojoClass = argNotNull(pojoClass, "pojoClass");
     }
 
     @Nonnull
     public <V, Z extends Annotation> Map<Class<? extends Annotation>, List<FieldDescriptor<K, V, Z>>> parse() {
+        // Get from cache or parse and cache
+        @SuppressWarnings("unchecked")
+        Map<Class<? extends Annotation>, List<FieldDescriptor<K, V, Z>>> cached = 
+            (Map<Class<? extends Annotation>, List<FieldDescriptor<K, V, Z>>>) PARSE_CACHE.computeIfAbsent(pojoClass, this::doParse);
+        return cached;
+    }
+
+    /**
+     * Actually performs the parsing logic.
+     */
+    @Nonnull
+    private <V, Z extends Annotation> Map<Class<? extends Annotation>, List<FieldDescriptor<K, V, Z>>> doParse(Class<?> clazz) {
         Map<Class<? extends Annotation>, List<FieldDescriptor<K, V, Z>>> map = new HashMap<>();
-        MethodHandles.Lookup publicLookup = MethodHandles.publicLookup();
-        Arrays.stream(pojoClass.getDeclaredFields()).forEach(field ->
+        Arrays.stream(clazz.getDeclaredFields()).forEach(field ->
             Arrays.stream(field.getAnnotations()).forEach(annotation -> {
                 MergedAnnotations mergedAnnotations = MergedAnnotations.from(annotation);
                 if (!mergedAnnotations.isPresent(ColumnFunction.class)) {
@@ -62,31 +77,27 @@ public class PojoFieldParser<K> {
                     LambdaHelper.createGetter(ReflectHelper.getGetter(field)),
                     updatedGetter == null ? null : LambdaHelper.createGetter(updatedGetter),
                     LambdaHelper.createSetter(ReflectHelper.getSetter(field))
-//                                        createGetter(getGetter(field), publicLookup),
-//                    updatedGetter == null ? null : createGetter(updatedGetter, publicLookup),
-//                    createSetter(getSetter(field), publicLookup)
                 );
                 map.computeIfAbsent(annotation.annotationType(), key -> new ArrayList<>()).add(fieldDescriptor);
             }));
         return map;
     }
 
-//    protected Method getGetter(Field field) {
-//        try {
-//            return pojoClass.getDeclaredMethod(getGetterName(field.getName()));
-//        } catch (NoSuchMethodException e) {
-//            throw new RuntimeException(e);
-//        }
-//    }
-//
-//
-//    protected Method getSetter(Field field) {
-//        try {
-//            return pojoClass.getDeclaredMethod(getSetterName(field.getName()), field.getType());
-//        } catch (NoSuchMethodException e) {
-//            throw new RuntimeException(e);
-//        }
-//    }
+    /**
+     * Clears the parse cache of the specified class, for testing or hot reload scenarios.
+     *
+     * @param clazz the class whose cache is to be cleared, must not be null
+     */
+    public static void clearCache(@Nonnull Class<?> clazz) {
+        PARSE_CACHE.remove(argNotNull(clazz, "clazz"));
+    }
+
+    /**
+     * Clears all parse caches.
+     */
+    public static void clearAllCache() {
+        PARSE_CACHE.clear();
+    }
 
     protected Method getUpdatedGetter(Field field) {
         try {
@@ -96,91 +107,7 @@ public class PojoFieldParser<K> {
         }
     }
 
-//    protected String getGetterName(String fieldName) {
-//        return "get" + StringHelper.capitalize(fieldName);
-//    }
-//
-//    protected String getSetterName(String fieldName) {
-//        return "set" + StringHelper.capitalize(fieldName);
-//    }
-
     protected String getUpdatedGetterName(String fieldName) {
         return "is" + StringHelper.capitalize(fieldName) + "Updated";
     }
-
-//    /**
-//     * JDK8: 对 public getter 尝试用 LambdaMetafactory, 失败回退到反射
-//     */
-//    protected <V> Function<K, V> createGetter(Method m, MethodHandles.Lookup publicLookup) {
-//        try {
-//            // 仅对 public 方法且可以用 publicLookup unreflect 的情况有效
-//            MethodHandle mh = publicLookup.unreflect(m);
-//            // 规范化类型：(T) -> R
-//            mh = mh.asType(MethodType.methodType(m.getReturnType(), pojoClass));
-//            MethodType invokedType = MethodType.methodType(Function.class); // () -> Function
-//            MethodType samMethodType = MethodType.methodType(m.getReturnType(), pojoClass); // Function.apply(Object)->Object (erased)
-//            MethodType instantiatedMethodType = MethodType.methodType(m.getReturnType(), pojoClass); // (T)->R
-//            CallSite cs = LambdaMetafactory.metafactory(
-//                publicLookup,
-//                "apply",
-//                invokedType,
-//                samMethodType,
-//                mh,
-//                instantiatedMethodType
-//            );
-//            MethodHandle factory = cs.getTarget();
-//            return (Function<K, V>) factory.invoke();
-//        } catch (Throwable t) {
-//            // 回退反射
-//            return reflectionGetter(m);
-//        }
-//    }
-//
-//    // 反射回退 getter
-//    protected <V> Function<K, V> reflectionGetter(Method m) {
-//        return (K instance) -> {
-//            try {
-//                return (V) m.invoke(instance);
-//            } catch (IllegalAccessException | InvocationTargetException e) {
-//                throw new RuntimeException(e);
-//            }
-//        };
-//    }
-//
-//    /**
-//     * JDK8: 对 public setter 尝试用 LambdaMetafactory, 失败回退到反射
-//     */
-//    private <V> BiConsumer<K, V> createSetter(Method m, MethodHandles.Lookup publicLookup) {
-//        try {
-//            MethodHandle mh = publicLookup.unreflect(m);
-//            mh = mh.asType(MethodType.methodType(void.class, pojoClass, m.getParameterTypes()[0]));
-//            MethodType invokedType = MethodType.methodType(BiConsumer.class); // () -> BiConsumer
-//            MethodType samMethodType = MethodType.methodType(void.class, Object.class, Object.class); // BiConsumer.accept(Object,Object)->void
-//            MethodType instantiatedMethodType = MethodType.methodType(void.class, pojoClass, m.getParameterTypes()[0]); // (T, P)->void
-//            CallSite cs = LambdaMetafactory.metafactory(
-//                publicLookup,
-//                "accept",
-//                invokedType,
-//                samMethodType,
-//                mh,
-//                instantiatedMethodType
-//            );
-//            MethodHandle factory = cs.getTarget();
-//            return (BiConsumer<K, V>) factory.invoke();
-//        } catch (Throwable t) {
-//            return reflectionSetter(m);
-//        }
-//    }
-//
-//    // 反射回退 setter
-//    protected <V> BiConsumer<K, V> reflectionSetter(Method m) {
-//        m.setAccessible(true);
-//        return (K instance, V value) -> {
-//            try {
-//                m.invoke(instance, value);
-//            } catch (IllegalAccessException | InvocationTargetException e) {
-//                throw new RuntimeException(e);
-//            }
-//        };
-//    }
 }

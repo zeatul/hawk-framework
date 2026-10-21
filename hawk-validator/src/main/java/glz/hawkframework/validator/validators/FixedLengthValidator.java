@@ -10,9 +10,9 @@ import java.util.Map;
 /**
  * This class is responsible for validating the object annotated by {@link FixedLength}
  *
- * @author Hawk
+ * @author Zhang Peng
  */
-public class FixedLengthValidator<T> implements ConstraintValidator<FixedLength, T> {
+public abstract class FixedLengthValidator<T> implements ConstraintValidator<FixedLength, T> {
 
     protected int length;
 
@@ -27,9 +27,7 @@ public class FixedLengthValidator<T> implements ConstraintValidator<FixedLength,
         return check(value);
     }
 
-    protected boolean check(T value) {
-        return false;
-    }
+    protected abstract boolean check(T value);
 
     public static class FixedLengthValidatorForCharSequence extends FixedLengthValidator<CharSequence> {
         @Override

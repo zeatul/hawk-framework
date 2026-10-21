@@ -20,9 +20,9 @@ import java.lang.annotation.*;
 
 /**
  * This annotation is responsible for self maintaining
- * <p>记录的物理主键</p>
+ * <p>Physical primary key of the record.</p>
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 @ColumnFunction
 @Target(ElementType.FIELD)

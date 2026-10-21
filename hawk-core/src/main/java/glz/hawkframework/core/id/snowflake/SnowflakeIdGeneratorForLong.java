@@ -19,7 +19,7 @@ import java.math.BigInteger;
  * If your system exists for more than 100 years, You should use {@code SnowflakeIdGeneratorForBigInteger}
  * Or else, you will encounter an uncomfortable experience.
  * @author Leavy
- * @author Hawk
+ * @author Zhang Peng
  */
 public class SnowflakeIdGeneratorForLong extends AbstractSnowflakeIdGenerator<Long> {
 

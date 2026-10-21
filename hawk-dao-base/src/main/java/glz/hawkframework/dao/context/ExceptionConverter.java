@@ -19,7 +19,7 @@ package glz.hawkframework.dao.context;
 /**
  * This interface is responsible for translating the exception threw by insert method to the required exception
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 public interface ExceptionConverter {
 

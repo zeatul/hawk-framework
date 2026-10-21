@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * This class is responsible for
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 public class RateLimiterTest {
 

@@ -3,7 +3,7 @@ package glz.hawkframework.dao.pagination;
 /**
  * This interface describes the paging params for oracle
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 public interface RowNoRange {
 
@@ -14,7 +14,7 @@ public interface RowNoRange {
     long getMinRowNo();
 
     /**
-     * maxRowNo must be greater than minRowNo
+     * maxRowNo must be greater than or equal to minRowNo
      * @return
      */
     long getMaxRowNo();

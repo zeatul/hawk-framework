@@ -19,49 +19,77 @@ package glz.hawkframework.core.helper;
 import glz.hawkframework.core.i18n.I18NMessageSource;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static glz.hawkframework.core.support.ArgumentSupport.argNotBlank;
 import static glz.hawkframework.core.support.ArgumentSupport.argNotNull;
 
 /**
  * This class is responsible for
- * <p>使用前必须初始化静态变量{@code i18NMessageSource}</p>
+ * <p>Must be initialized via {@link #initialize(I18NMessageSource)} before use</p>
  *
  * @author Zhang Peng
  */
 public abstract class EnumHelper {
 
-    private static I18NMessageSource MESSAGE_SOURCE;
+    private static final AtomicReference<I18NMessageSource> MESSAGE_SOURCE_REF = new AtomicReference<>();
 
     private static final Map<String, Object> DISPLAY_NAME_CACHE = new ConcurrentHashMap<>();
     private static final Object NULL_OBJECT = new Object();
 
-    public EnumHelper(I18NMessageSource i18NMessageSource) {
-        MESSAGE_SOURCE = argNotNull(i18NMessageSource, "i18NMessageSource");
+    /**
+     * Initializes EnumHelper; must be called once before using any other static method.
+     * <p>Thread-safe: only the first call takes effect; subsequent calls are ignored.</p>
+     *
+     * @param i18NMessageSource the internationalization message source, must not be null
+     * @throws IllegalStateException if already initialized and a different instance is passed
+     */
+    public static void initialize(@Nonnull I18NMessageSource i18NMessageSource) {
+        argNotNull(i18NMessageSource, "i18NMessageSource");
+        I18NMessageSource existing = MESSAGE_SOURCE_REF.get();
+        if (existing != null && existing != i18NMessageSource) {
+            throw new IllegalStateException("EnumHelper already initialized with a different I18NMessageSource instance.");
+        }
+        MESSAGE_SOURCE_REF.compareAndSet(null, i18NMessageSource);
     }
 
     /**
-     * 获取枚举的显示名称
+     * Gets the initialized message source, or returns null if not initialized.
+     */
+    @Nullable
+    private static I18NMessageSource getMessageSource() {
+        return MESSAGE_SOURCE_REF.get();
+    }
+
+    /**
+     * Gets the display name of an enum constant.
      *
-     * @param enumConstant 枚举常量，不可为空
-     * @param locale       语言，不可为空
-     * @return 枚举的显示名称
+     * @param enumConstant the enum constant, must not be null
+     * @param locale       the locale, must not be null
+     * @return the display name of the enum constant
+     * @throws IllegalStateException if not initialized
      */
     public static Optional<String> getDisplayName(@Nonnull Enum<?> enumConstant, @Nonnull Locale locale) {
+        I18NMessageSource messageSource = getMessageSource();
+        if (messageSource == null) throw new IllegalStateException("EnumHelper is not initialized. Please call EnumHelper.initialize(I18NMessageSource) first.");
         String key = argNotNull(enumConstant, "enumConstant").getClass().getName() + "." + enumConstant.name();
-        return MESSAGE_SOURCE.getMessage(key, argNotNull(locale, "locale"));
+        return messageSource.getMessage(key, argNotNull(locale, "locale"));
     }
 
     /**
-     * 获取枚举的显示名称列表
+     * Gets the list of display names for an enum.
      *
-     * @param enumClass 枚举类，不可为空
-     * @param locale    语言，不可为空
-     * @return 枚举的显示名称列表
+     * @param enumClass the enum class, must not be null
+     * @param locale    the locale, must not be null
+     * @return the list of display names for the enum
+     * @throws IllegalStateException if not initialized
      */
     public static <T extends Enum<T>> List<EnumDisplay<T>> getDisplayNameList(@Nonnull Class<T> enumClass, @Nonnull Locale locale) {
+        I18NMessageSource messageSource = getMessageSource();
+        if (messageSource == null) throw new IllegalStateException("EnumHelper is not initialized. Please call EnumHelper.initialize(I18NMessageSource) first.");
         List<EnumDisplay<T>> list = new ArrayList<>();
         for (T enumConstant : enumClass.getEnumConstants()) {
             String displayName = getDisplayName(enumConstant, locale).orElseThrow(
@@ -72,14 +100,17 @@ public abstract class EnumHelper {
     }
 
     /**
-     * 通过显示名称获取枚举常量
+     * Gets an enum constant by its display name.
      *
-     * @param enumClass   枚举类，不可为空
-     * @param displayName 枚举的显示名称，不可为空
-     * @param locale      语言，不可为空
-     * @return 枚举常量
+     * @param enumClass   the enum class, must not be null
+     * @param displayName the display name of the enum constant, must not be null
+     * @param locale      the locale, must not be null
+     * @return the enum constant
+     * @throws IllegalStateException if not initialized
      */
     public static <T extends Enum<T>> Optional<T> parseByDisplayName(@Nonnull Class<T> enumClass, @Nonnull String displayName, @Nonnull Locale locale) {
+        I18NMessageSource messageSource = getMessageSource();
+        if (messageSource == null) throw new IllegalStateException("EnumHelper is not initialized. Please call EnumHelper.initialize(I18NMessageSource) first.");
         final String keyForMap = argNotNull(enumClass, "enumClass").getName() + "." + argNotBlank(displayName, "displayName") + "." + argNotNull(locale, "locale").toString();
 
         Object object = DISPLAY_NAME_CACHE.get(keyForMap);
@@ -89,13 +120,23 @@ public abstract class EnumHelper {
         T t = null;
         for (T enumConstant : enumClass.getEnumConstants()) {
             String keyForMessage = enumClass.getName() + "." + enumConstant.name();
-            String message = MESSAGE_SOURCE.getMessage(keyForMessage, locale).orElse(null);
-            if (displayName.equals(message)) t = enumConstant;
+            String message = messageSource.getMessage(keyForMessage, locale).orElse(null);
+            if (displayName.equals(message)) {
+                t = enumConstant;
+                break;
+            }
         }
 
         DISPLAY_NAME_CACHE.putIfAbsent(keyForMap, t == null ? NULL_OBJECT : t);
 
         return Optional.ofNullable(t);
+    }
+
+    /**
+     * Clears the display name cache, for testing or hot-reload scenarios.
+     */
+    public static void clearCache() {
+        DISPLAY_NAME_CACHE.clear();
     }
 
     public static class EnumDisplay<T extends Enum<T>> {

@@ -3,7 +3,7 @@ package glz.hawkframework.dao.pagination;
 /**
  * This interface describes the paging params for mysql
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 public interface OffsetAndLimit {
 

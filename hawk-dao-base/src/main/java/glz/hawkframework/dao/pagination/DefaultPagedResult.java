@@ -27,7 +27,7 @@ import static glz.hawkframework.core.support.ArgumentSupport.argument;
 /**
  * This class is responsible for
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 public class DefaultPagedResult<T> implements PagedResult<T> {
 

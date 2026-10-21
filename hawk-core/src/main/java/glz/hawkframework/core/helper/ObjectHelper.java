@@ -19,6 +19,7 @@ package glz.hawkframework.core.helper;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.lang.reflect.Array;
+import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
@@ -28,7 +29,7 @@ import java.util.function.Function;
  * Miscellaneous {@link Object} utility methods.
  * <p>Mainly for internal use within the framework.</p>
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 public abstract class ObjectHelper {
 
@@ -183,13 +184,13 @@ public abstract class ObjectHelper {
     }
 
     /**
-     * 获取对象属性值
+     * Gets an object's field value.
      *
-     * @param object    对象实例，不可为空
-     * @param fieldName 属性名称，不可为空
-     * @param fieldType 属性值类型，不可为空
-     * @param <T>       属性值类类型
-     * @return 属性值
+     * @param object    the object instance, must not be null
+     * @param fieldName the field name, must not be null
+     * @param fieldType the field value type, must not be null
+     * @param <T>       the field value class type
+     * @return the field value
      */
     @SuppressWarnings("unchecked")
     public static <T> @Nullable T getFieldValue(@Nonnull Object object, @Nonnull String fieldName, @Nonnull Class<T> fieldType) {
@@ -197,42 +198,63 @@ public abstract class ObjectHelper {
     }
 
     /**
-     * 获取对象属性值
+     * Gets an object's field value.
      *
-     * @param object    对象实例，不可为空
-     * @param fieldName 属性名称，不可为空
-     * @return 属性值
+     * @param object    the object instance, must not be null
+     * @param fieldName the field name, must not be null
+     * @return the field value
      */
     public static @Nullable Object getFieldValue(@Nonnull Object object, @Nonnull String fieldName) {
         final Class<?> objectClass = object.getClass();
-        final String key = objectClass.getCanonicalName() + ":" + fieldName;
+        final String key = cacheKey(objectClass, fieldName);
         Function<Object, Object> getter = GETTER_MAP.computeIfAbsent(key, k -> LambdaHelper.createGetter(ReflectHelper.getGetter(objectClass, fieldName)));
         return getter.apply(object);
     }
 
     /**
-     * 设置对象属性值
+     * Sets an object's field value.
      *
-     * @param object    对象实例，不可为空
-     * @param fieldName 属性名称，不可为空
-     * @param newValue  新的属性值，为空则将属性的值设为{@code null}
-     * @param valueType 属性值类型，不可为空
+     * @param object    the object instance, must not be null
+     * @param fieldName the field name, must not be null
+     * @param newValue  the new field value; if empty, the field value is set to {@code null}
+     * @param valueType the field value type, must not be null
      */
     public static void setFieldValue(@Nonnull Object object, @Nonnull String fieldName, @Nullable Object newValue, @Nonnull Class<?> valueType) {
         final Class<?> objectClass = object.getClass();
-        final String key = objectClass.getCanonicalName() + ":" + fieldName;
+        final String key = cacheKey(objectClass, fieldName, valueType);
         BiConsumer<Object, Object> setter = SETTER_MAP.computeIfAbsent(key, k -> LambdaHelper.createSetter(ReflectHelper.getSetter(objectClass, fieldName, valueType)));
         setter.accept(object, newValue);
     }
 
     /**
-     * 设置对象属性值
+     * Sets an object's field value.
      *
-     * @param object    对象实例，不可为空
-     * @param fieldName 属性名称，不可为空
-     * @param newValue  新的属性值，不可为空
+     * @param object    the object instance, must not be null
+     * @param fieldName the field name, must not be null
+     * @param newValue  the new field value, must not be null
      */
     public static void setFieldValue(@Nonnull Object object, @Nonnull String fieldName, @Nonnull Object newValue) {
-        setFieldValue(object, fieldName, newValue, newValue.getClass());
+        setFieldValue(object, fieldName, newValue, declaredFieldType(object.getClass(), fieldName, newValue));
+    }
+
+    private static String cacheKey(Class<?> objectClass, String fieldName) {
+        return objectClass.getName() + ":" + fieldName;
+    }
+
+    /**
+     * The cache key includes the field type, to distinguish overloaded setters.
+     */
+    private static String cacheKey(Class<?> objectClass, String fieldName, Class<?> valueType) {
+        return objectClass.getName() + ":" + fieldName + ":" + valueType.getName();
+    }
+
+    private static Class<?> declaredFieldType(Class<?> objectClass, String fieldName, Object newValue) {
+        for (Class<?> c = objectClass; c != null && c != Object.class; c = c.getSuperclass()) {
+            try {
+                return c.getDeclaredField(fieldName).getType();
+            } catch (NoSuchFieldException ignored) {
+            }
+        }
+        return newValue.getClass();
     }
 }

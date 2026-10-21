@@ -33,6 +33,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * This class is responsible for
+ * <p></p>
  *
  * @author Zhang Peng
  */
@@ -46,7 +47,6 @@ public class CompareFieldsTest {
     public void setup() {
         LocaleContextHolder.setDefaultLocale(Locale.CHINA);
     }
-
 
     @Test
     public void less_has_one_error_for_less() {
@@ -76,6 +76,4 @@ public class CompareFieldsTest {
         Set<ConstraintViolation<ObjectForLess>> set = validator.validate(book);
         assertThat(set).hasSize(0);
     }
-
-
 }

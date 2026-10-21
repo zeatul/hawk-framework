@@ -36,7 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * This class is responsible for
- * <p>{@link ParameterScriptAssert}示例</p>
+ * <p>{@link ParameterScriptAssert} example</p>
  *
  * @author Zhang Peng
  */

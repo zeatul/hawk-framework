@@ -22,11 +22,11 @@ import static glz.hawkframework.core.support.ArgumentSupport.argument;
 /**
  * This class is responsible for
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 public class DefaultPage implements Page {
 
-    private long pageIndex = 0;
+    private long pageIndex = 1;
 
     private long pageSize = 1;
 
@@ -85,7 +85,7 @@ public class DefaultPage implements Page {
     }
 
     @Override
-    public RowNoRange toRowNoRage() {
+    public RowNoRange toRowNoRange() {
         DefaultRowNoRange defaultRowNoRange = new DefaultRowNoRange();
         defaultRowNoRange.setMinRowNo((pageIndex - 1) * pageSize + 1);
         defaultRowNoRange.setMaxRowNo(pageIndex * pageSize);

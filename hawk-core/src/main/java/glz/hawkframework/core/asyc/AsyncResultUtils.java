@@ -35,10 +35,10 @@ import java.util.stream.Collectors;
  */
 public abstract class AsyncResultUtils {
     /**
-     * 等待多个异步任务完成
+     * Waits for multiple asynchronous tasks to complete.
      *
-     * @param results 多个 AsyncResult
-     * @return 新的 AsyncResult（Void 类型）
+     * @param results multiple AsyncResults
+     * @return a new AsyncResult (of type Void)
      */
     public static AsyncResult<Void> allOf(AsyncResult<?>... results) {
         CompletableFuture<?>[] futures = new CompletableFuture[results.length];
@@ -49,19 +49,19 @@ public abstract class AsyncResultUtils {
     }
 
     /**
-     * 等待所有任务完成，并收集所有结果
+     * Waits for all tasks to complete and collects all results.
      *
-     * @param results 多个 AsyncResult
-     * @param <T>     结果类型
-     * @return 所有任务的结果列表
-     * @throws ExecutionException   如果任务执行异常
-     * @throws InterruptedException 如果等待被中断
+     * @param results multiple AsyncResults
+     * @param <T>     the result type
+     * @return the list of results from all tasks
+     * @throws ExecutionException   if a task failed
+     * @throws InterruptedException if the wait is interrupted
      */
     @SafeVarargs
     public static <T> List<T> getAllResults(AsyncResult<T>... results) throws ExecutionException, InterruptedException {
-        // 等待所有完成
+        // Wait for all to complete
         allOf(results).get();
-        // 收集结果
+        // Collect the results
         List<T> resultList = new ArrayList<>();
         for (AsyncResult<T> result : results) {
             resultList.add(result.get());
@@ -70,20 +70,23 @@ public abstract class AsyncResultUtils {
     }
 
     /**
-     * 等待所有任务完成，并收集所有结果（带超时）
+     * Waits for all tasks to complete and collects all results (with timeout).
      */
     @SafeVarargs
     public static <T> List<T> getAllResults(long timeout, TimeUnit unit, AsyncResult<T>... results) throws ExecutionException, InterruptedException, TimeoutException {
+        long deadline = System.nanoTime() + unit.toNanos(timeout);
         allOf(results).get(timeout, unit);
         List<T> resultList = new ArrayList<>();
         for (AsyncResult<T> result : results) {
-            resultList.add(result.get());
+            long remaining = deadline - System.nanoTime();
+            if (remaining <= 0) throw new TimeoutException();
+            resultList.add(result.get(remaining, TimeUnit.NANOSECONDS));
         }
         return resultList;
     }
 
     /**
-     * 等待所有任务完成，并收集所有结果（使用 join）
+     * Waits for all tasks to complete and collects all results (using join).
      */
     @SafeVarargs
     public static <T> List<T> getAllResultsJoin(AsyncResult<T>... results) {
@@ -96,7 +99,7 @@ public abstract class AsyncResultUtils {
     }
 
     /**
-     * 批量注册回调（所有任务完成后执行）
+     * Registers callbacks in bulk (executed after all tasks complete).
      */
     @SafeVarargs
     public static <T> AsyncResult<List<T>> allOfWithCallback(Consumer<List<T>> successCallback, Consumer<Throwable> failureCallback, AsyncResult<T>... results) {
@@ -104,19 +107,22 @@ public abstract class AsyncResultUtils {
             .allOf(Arrays.stream(results).map(AsyncResult::getFuture).toArray(CompletableFuture[]::new))
             .thenApply(v -> Arrays.stream(results)
                 .map(r -> r.getFuture().join())
-                .collect(Collectors.toList()))
-            .exceptionally(throwable -> {
+                .collect(Collectors.toList()));
+        combined.whenComplete((list, throwable) -> {
+            if (throwable != null) {
                 failureCallback.accept(throwable);
-                return new ArrayList<>();
-            });
+            } else {
+                successCallback.accept(list);
+            }
+        });
         return new AsyncResult<>(combined);
     }
 
     /**
-     * 等待任意一个异步任务完成
+     * Waits for any one of the asynchronous tasks to complete.
      *
-     * @param results 多个 AsyncResult
-     * @return 新的 AsyncResult
+     * @param results multiple AsyncResults
+     * @return a new AsyncResult
      */
     public static AsyncResult<Object> anyOf(AsyncResult<?>... results) {
         CompletableFuture<?>[] futures = new CompletableFuture[results.length];

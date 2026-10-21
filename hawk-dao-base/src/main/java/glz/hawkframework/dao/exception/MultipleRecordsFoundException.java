@@ -26,7 +26,7 @@ import static glz.hawkframework.core.support.ArgumentSupport.argNotNull;
 /**
  * This class is responsible for
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 public class MultipleRecordsFoundException extends DataAccessException {
 

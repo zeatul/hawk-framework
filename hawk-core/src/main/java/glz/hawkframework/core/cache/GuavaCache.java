@@ -21,14 +21,16 @@ import com.google.common.cache.CacheBuilder;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.time.Duration;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 import static glz.hawkframework.core.support.ArgumentSupport.argNotNull;
 
 /**
  * This class is responsible for
- * <p>用Guava实现Cache</p>
- * <p>Guava不支持控制单个key的过期时间</p>
+ * <p>Implements Cache with Guava</p>
+ * <p>Guava does not support controlling the expiration time of an individual key</p>
  *
  * @author Zhang Peng
  */
@@ -52,6 +54,23 @@ public class GuavaCache<K, V> implements Cache<K, V> {
     }
 
     @Override
+    @Nullable
+    public V computeIfAbsent(@Nonnull K key, @Nonnull Function<? super K, ? extends V> mappingFunction) {
+        try {
+            return cache.get(key, () -> mappingFunction.apply(key));
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof RuntimeException) {
+                throw (RuntimeException) cause;
+            }
+            if (cause instanceof Error) {
+                throw (Error) cause;
+            }
+            throw new IllegalStateException(cause);
+        }
+    }
+
+    @Override
     public void evict(K key) {
         cache.invalidate(key);
     }
@@ -63,7 +82,8 @@ public class GuavaCache<K, V> implements Cache<K, V> {
 
     @Override
     public boolean exists(K key) {
-        return get(key) != null;
+        // Use asMap().containsKey to avoid triggering loading (if a CacheLoader is configured)
+        return cache.asMap().containsKey(key);
     }
 
     public static <K, V> Builder<K, V> builder() {

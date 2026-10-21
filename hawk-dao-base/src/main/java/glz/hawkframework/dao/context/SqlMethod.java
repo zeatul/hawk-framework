@@ -18,7 +18,7 @@ package glz.hawkframework.dao.context;
 /**
  * This enum is responsible for
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 public enum SqlMethod {
     INSERT,

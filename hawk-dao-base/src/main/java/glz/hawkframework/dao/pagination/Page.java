@@ -3,7 +3,7 @@ package glz.hawkframework.dao.pagination;
 /**
  * {@link Page} supports pagination query.
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 public interface Page {
 
@@ -23,6 +23,6 @@ public interface Page {
 
     OffsetAndLimit toOffsetAndLimit();
 
-    RowNoRange toRowNoRage();
+    RowNoRange toRowNoRange();
 
 }

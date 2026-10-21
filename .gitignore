@@ -62,3 +62,11 @@ Thumbs.db
 
 # exclude src/generated
 **/src/generated/
+
+# Exclude all dotfiles and dot-directories
+.*
+!/.gitignore
+!.gitattributes
+!.editorconfig
+!/.gitkeep
+!/.github

@@ -7,7 +7,7 @@ import java.util.List;
  * This interface is used to get an id or a list of ids
  *
  * @param <T> T is the type of id, Long, BigInteger, for example
- * @author Hawk
+ * @author Zhang Peng
  */
 public interface IdGenerator<T> {
 

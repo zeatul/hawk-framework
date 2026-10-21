@@ -25,6 +25,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 /**
  * This class is responsible for
  *
@@ -33,45 +35,54 @@ import java.util.Map;
 public class PojoFieldParserTest {
 
     @Test
-    public void test() {
+    public void testParseAndModifyFields() {
         PojoFieldParser<BookPo> pojoFieldParser = new PojoFieldParser<>(BookPo.class);
         Map<Class<? extends Annotation>, List<FieldDescriptor<BookPo, Object, Annotation>>> map = pojoFieldParser.parse();
+        
+        // Verify the number of parsed fields (BookPo should contain id, createTime, updateTime, createUser, updateUser, version, etc.)
+        assertThat(map).isNotEmpty();
+        
         BookPo bookPo = new BookPo();
         bookPo.setCreateTime(LocalDateTime.now());
         bookPo.setUpdateTime(LocalDateTime.now());
         bookPo.setId("111111");
         bookPo.setCreateUser("A1011");
         bookPo.setUpdateUser("A1012");
-        System.out.println(map.size());
-        System.out.println("-----------------------------------------");
 
-        FieldDescriptor<BookPo, Object,Annotation> fieldDescriptor = map.get(RecordId.class).get(0);
-        if (fieldDescriptor != null) {
-            fieldDescriptor.getFieldModifier().accept(bookPo, "XX10001");
-        }
+        // Test modification of the RecordId field
+        FieldDescriptor<BookPo, Object, Annotation> fieldDescriptor = map.get(RecordId.class).get(0);
+        assertThat(fieldDescriptor).isNotNull();
+        fieldDescriptor.getFieldModifier().accept(bookPo, "XX10001");
+        assertThat(bookPo.getId()).isEqualTo("XX10001");
 
+        // Test modification of the RecordCreateUserId field
         fieldDescriptor = map.get(RecordCreateUserId.class).get(0);
-        if (fieldDescriptor != null) {
-            fieldDescriptor.getFieldModifier().accept(bookPo, "XX10002");
-        }
+        assertThat(fieldDescriptor).isNotNull();
+        fieldDescriptor.getFieldModifier().accept(bookPo, "XX10002");
+        assertThat(bookPo.getCreateUser()).isEqualTo("XX10002");
 
+        // Test modification of the RecordUpdateUserId field
         fieldDescriptor = map.get(RecordUpdateUserId.class).get(0);
-        if (fieldDescriptor != null) {
-            fieldDescriptor.getFieldModifier().accept(bookPo, "XX10003");
-        }
+        assertThat(fieldDescriptor).isNotNull();
+        fieldDescriptor.getFieldModifier().accept(bookPo, "XX10003");
+        assertThat(bookPo.getUpdateUser()).isEqualTo("XX10003");
 
+        // Test modification of the RecordCreateDateTime field
+        LocalDateTime newCreateTime = LocalDateTime.of(2024, 1, 1, 12, 0);
         fieldDescriptor = map.get(RecordCreateDateTime.class).get(0);
-        if (fieldDescriptor != null) {
-            fieldDescriptor.getFieldModifier().accept(bookPo, LocalDateTime.now());
-        }
+        assertThat(fieldDescriptor).isNotNull();
+        fieldDescriptor.getFieldModifier().accept(bookPo, newCreateTime);
+        assertThat(bookPo.getCreateTime()).isEqualTo(newCreateTime);
 
+        // Test modification of the RecordUpdateDateTime field
+        LocalDateTime newUpdateTime = LocalDateTime.of(2024, 1, 2, 12, 0);
         fieldDescriptor = map.get(RecordUpdateDateTime.class).get(0);
-        if (fieldDescriptor != null) {
-            fieldDescriptor.getFieldModifier().accept(bookPo, LocalDateTime.now());
-        }
+        assertThat(fieldDescriptor).isNotNull();
+        fieldDescriptor.getFieldModifier().accept(bookPo, newUpdateTime);
+        assertThat(bookPo.getUpdateTime()).isEqualTo(newUpdateTime);
 
-        map.values().forEach(descriptors -> {
-            System.out.printf("updated %s = %s%n", descriptors.get(0).getFieldName(), descriptors.get(0).getFieldSupplier().apply(bookPo));
-        });
+        // Verify that the cache takes effect: parsing again should return the same result
+        Map<Class<? extends Annotation>, List<FieldDescriptor<BookPo, Object, Annotation>>> map2 = pojoFieldParser.parse();
+        assertThat(map2).isSameAs(map);
     }
 }

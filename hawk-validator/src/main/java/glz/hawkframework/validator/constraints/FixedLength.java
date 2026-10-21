@@ -19,7 +19,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
  * <p>
  * Supports {@link CharSequence}, {@code Array}, {@link Collection} and {@link Map}
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 @Target({METHOD, FIELD, ANNOTATION_TYPE, CONSTRUCTOR, PARAMETER, TYPE_USE})
 @Retention(RUNTIME)

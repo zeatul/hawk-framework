@@ -26,7 +26,7 @@ import static glz.hawkframework.core.support.ArgumentSupport.argNotNull;
 /**
  * Throws this exception while the record for deleting or modifying is changed by other process.
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 public class ConcurrentModifyException extends DataAccessException {
 

@@ -20,6 +20,7 @@ import javax.annotation.Nonnull;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
 
 import static glz.hawkframework.core.support.ArgumentSupport.argNotBlank;
 
@@ -33,46 +34,51 @@ public abstract class LocaleHelper {
 
     private final static Map<String, Locale> map = new ConcurrentHashMap<>();
 
-    /**
-     * 分析locale，取出其中的语言段
-     *
-     * @param locale
-     * @return
-     */
+    private static final Pattern LANGUAGE_TAG_PATTERN = Pattern.compile(
+            "^([a-z]{2,3}(-[a-z]{4})?(-([a-z]{2}|[0-9]{3}))?(-[a-z0-9]{5,8})*|[a-z]{5,8})$",
+            Pattern.CASE_INSENSITIVE);
+
     public static String getLanguage(String locale) {
         argNotBlank(locale, "locale");
-        if (locale.length() == 2) {
-            return locale;
-        } else if (locale.length() == 5) {
-            return locale.substring(0, 2);
-        } else {
-            throw new IllegalArgumentException("The length of local must be 2 or 5.");
+        String normalized = locale.replace('_', '-');
+        if (!isValidLanguageTag(normalized)) {
+            if (locale.length() == 2) return locale;
+            if (locale.length() == 5) return locale.substring(0, 2);
+            throw new IllegalArgumentException("Invalid locale format: " + locale);
         }
+        Locale l = Locale.forLanguageTag(normalized);
+        String lang = l.getLanguage();
+        if (!lang.isEmpty()) return lang;
+        if (locale.length() == 2) return locale;
+        if (locale.length() == 5) return locale.substring(0, 2);
+        throw new IllegalArgumentException("Invalid locale format: " + locale);
     }
 
-    /**
-     * 将{@code localeStr}翻译成标准的{@code -}分割的格式
-     *
-     * @param localeStr the locale string to format
-     * @return
-     */
     public static String format(String localeStr) {
         argNotBlank(localeStr, "localeStr");
-        if (localeStr.length() == 2) {
-            return localeStr;
-        } else if (localeStr.length() == 5) {
-            return localeStr.substring(0, 2) + "-" + localeStr.substring(3, 5);
-        } else {
-            throw new IllegalArgumentException("The length of locale must be 2 or 5.");
+        String normalized = localeStr.replace('_', '-');
+        if (!isValidLanguageTag(normalized)) {
+            if (localeStr.length() == 2) return localeStr;
+            if (localeStr.length() == 5) return localeStr.substring(0, 2) + "-" + localeStr.substring(3, 5);
+            throw new IllegalArgumentException("Invalid locale format: " + localeStr);
         }
+        Locale l = Locale.forLanguageTag(normalized);
+        if (!l.getLanguage().isEmpty()) return l.toLanguageTag();
+        if (localeStr.length() == 2) return localeStr;
+        if (localeStr.length() == 5) return localeStr.substring(0, 2) + "-" + localeStr.substring(3, 5);
+        throw new IllegalArgumentException("Invalid locale format: " + localeStr);
     }
 
-    /**
-     * 解析失败，抛异常
-     *
-     * @param localeStr 不可为空
-     * @return a Locale instance
-     */
+    private static boolean isValidLanguageTag(String tag) {
+        if (!LANGUAGE_TAG_PATTERN.matcher(tag).matches()) return false;
+        Locale l = Locale.forLanguageTag(tag);
+        String country = l.getCountry();
+        if (!country.isEmpty()) {
+            return country.length() == 2 && country.matches("[A-Za-z]{2}") || country.length() == 3 && country.matches("[0-9]{3}");
+        }
+        return true;
+    }
+
     public static Locale parse(@Nonnull String localeStr) {
         localeStr = format(localeStr);
         Locale locale = map.computeIfAbsent(localeStr, Locale::forLanguageTag);
@@ -80,12 +86,6 @@ public abstract class LocaleHelper {
         return locale;
     }
 
-    /**
-     * 获取不包含国家代码的Locale
-     *
-     * @param locale
-     * @return
-     */
     public static @Nonnull Locale getLocaleWithoutCountry(@Nonnull Locale locale) {
         return Locale.forLanguageTag(locale.getLanguage());
     }

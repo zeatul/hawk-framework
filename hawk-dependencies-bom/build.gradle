@@ -1,0 +1,18 @@
+plugins {
+    id 'buildlogic.java-platform-conventions'
+}
+
+description = 'Bill of Materials for Hawk Framework third-party dependencies'
+
+publishing {
+    publications {
+        // Third-party libraries only; sibling projects are excluded.
+        hawkDependenciesBom(MavenPublication) {
+            artifactId = 'hawk-dependencies-bom'
+
+            writeDependencyManagement(pom, collectConstraints('hawk-dependencies-bom') { dep ->
+                dep.group != 'io.github.zeatul'
+            })
+        }
+    }
+}

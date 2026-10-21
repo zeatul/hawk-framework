@@ -23,7 +23,7 @@ import static glz.hawkframework.core.support.ArgumentSupport.argNotNull;
 /**
  * This class is responsible for
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 
 public class MapHelper {
@@ -62,7 +62,7 @@ public class MapHelper {
 
         private EntryHolder(K k, V v) {
             this.k = argNotNull(k, "k");
-            this.v = argNotNull(v, "v");
+            this.v = v;
         }
 
         @Override
@@ -86,6 +86,7 @@ public class MapHelper {
 
         public Builder<K, V> put(Map.Entry<K, V> entry) {
             argNotNull(entry, "entry");
+            argNotNull(entry.getKey(), "entry key");
             m.put(entry.getKey(), entry.getValue());
             return this;
         }
@@ -102,6 +103,7 @@ public class MapHelper {
         }
 
         public Builder<K, V> put(K k, V v) {
+            argNotNull(k, "key");
             m.put(k, v);
             return this;
         }
@@ -125,11 +127,11 @@ public class MapHelper {
 
         public Map<K, V> build(Class<? extends Map<K, V>> mapClass) {
             try {
-                Map<K, V> mm = mapClass.newInstance();
+                Map<K, V> mm = mapClass.getDeclaredConstructor().newInstance();
                 mm.putAll(m);
                 return mm;
 
-            } catch (InstantiationException | IllegalAccessException e) {
+            } catch (ReflectiveOperationException e) {
                 throw new RuntimeException(e);
             }
         }

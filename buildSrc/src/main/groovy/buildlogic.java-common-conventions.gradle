@@ -2,21 +2,22 @@
 
 plugins {
     id 'java'
-    id 'maven-publish'
-    id 'signing'
+    id 'buildlogic.publish-conventions'
 }
 
 
 java {
-     sourceCompatibility =  1.8
-     targetCompatibility =  1.8
-
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(8))
+        // Controlled via gradle.properties: auto-download=false, fromEnv=JAVA_HOME
     }
 
-    withJavadocJar() //with java doc
-    withSourcesJar() //with java source
+    // Explicitly target Java 8 compatibility
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+
+    withJavadocJar()
+    withSourcesJar()
 }
 
 dependencies {
@@ -44,43 +45,8 @@ tasks.withType(JavaCompile) {
 
 publishing {
     publications {
-        myLibrary(MavenPublication) {
+        mavenJava(MavenPublication) {
             from components.java
-            project.afterEvaluate {
-                pom {
-                    name = project.name
-                    description = project.description
-                    url = 'https://github.com/zeatul/hawk-framework'
-                    licenses {
-                        license {
-                            name = 'Apache-2.0'
-                            url = 'https://opensource.org/licenses/Apache-2.0'
-                        }
-                    }
-                    developers {
-                        developer {
-                            name = 'Zhang Peng'
-                            email = 'zeatul@qq.com'
-                        }
-                    }
-                    scm {
-                        connection = 'scm:git:git://github.com/zeatul/hawk-framework.git'
-                        developerConnection = 'scm:git:git@github.com:zeatul/hawk-framework.git'
-                        url = 'https://github.com/zeatul/hawk-framework'
-                    }
-                }
-            }
         }
     }
-
-    // The repository for publications is defined in the init.gradle file.
-    repositories {
-        mavenLocal()
-    }
 }
-
-signing {
-    required { !version.endsWith("SNAPSHOT") && gradle.taskGraph.hasTask("publish") }
-    sign publishing.publications.myLibrary
-}
-

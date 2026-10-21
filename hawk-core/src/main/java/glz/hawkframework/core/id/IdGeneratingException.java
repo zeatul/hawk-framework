@@ -19,7 +19,7 @@ package glz.hawkframework.core.id;
 /**
  * This class is responsible for
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 public class IdGeneratingException extends RuntimeException {
 

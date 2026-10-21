@@ -26,7 +26,7 @@ import static glz.hawkframework.core.support.ArgumentSupport.argNotNull;
 /**
  * Throws this exception while the record is in the database and can't be inserted.
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 public class UniqueViolationException extends DataAccessException {
 

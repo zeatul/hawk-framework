@@ -21,7 +21,7 @@ import javax.validation.constraints.NotBlank;
 /**
  * This class is responsible for
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 public class Person {
     @NotBlank

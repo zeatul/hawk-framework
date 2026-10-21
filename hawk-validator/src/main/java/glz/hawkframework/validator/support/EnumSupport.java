@@ -18,8 +18,8 @@ package glz.hawkframework.validator.support;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 /**
@@ -29,78 +29,105 @@ import java.util.function.Function;
  */
 public class EnumSupport {
 
-    private final static Map<String, Function<?, ?>> valueParserMap = new HashMap<>();
+    private static final Function<?, ?> NONE = x -> null;
+    private static final Function<String, ?> NONE_FOR_NAME = x -> null;
 
-    private final static Map<String, Function<String, ?>> nameParserMap = new HashMap<>();
+    private final static Map<String, Function<?, ?>> valueParserMap = new ConcurrentHashMap<>();
+    private final static Map<String, Function<String, ?>> nameParserMap = new ConcurrentHashMap<>();
 
-    /**
-     * 先从valueParserMap找，找不到，看enumClass有没有提供fromValue的静态方法，有则方法map，没有报错
-     *
-     */
     @SuppressWarnings("unchecked")
     public static <T extends Enum<T>, V> T fromValue(Class<T> enumClass, V value) {
         if (value == null) return null;
-        if (valueParserMap.containsKey(enumClass.getCanonicalName())) {
-            Function<V, T> function = (Function<V, T>) valueParserMap.get(enumClass.getCanonicalName());
-            if (function == null) throw new IllegalArgumentException("Found no parser for " + enumClass.getCanonicalName());
+        String key = enumClass.getName();
+        if (valueParserMap.containsKey(key)) {
+            Function<V, T> function = (Function<V, T>) valueParserMap.get(key);
+            if (function == NONE) throw new IllegalArgumentException("Found no parser for " + key);
             return function.apply(value);
         } else {
-            try {
-                Method method = enumClass.getDeclaredMethod("fromValue", value.getClass());
-                Function<V, T> function = v -> {
-                    try {
-                        return (T) (method.invoke(null, v));
-                    } catch (IllegalAccessException | InvocationTargetException e) {
-                        throw new RuntimeException(e);
-                    }
-                };
-                valueParserMap.put(enumClass.getCanonicalName(), function);
-                return function.apply(value);
-            } catch (NoSuchMethodException ignored) {
-                // 空值也要放入map，防止找不到默认方法，反复从反射获取
-                valueParserMap.put(enumClass.getCanonicalName(), null);
-                throw new IllegalArgumentException("Found no parser for " + enumClass.getCanonicalName());
+            Method method = findMethod(enumClass, "fromValue", value.getClass());
+            if (method == null) {
+                valueParserMap.put(key, NONE);
+                throw new IllegalArgumentException("Found no parser for " + key);
             }
+            Function<V, T> function = v -> {
+                try {
+                    return (T) (method.invoke(null, v));
+                } catch (IllegalAccessException | InvocationTargetException e) {
+                    throw new RuntimeException(e);
+                }
+            };
+            valueParserMap.put(key, function);
+            return function.apply(value);
         }
     }
 
-    /**
-     * 先从nameParserMap找，找不到，看enumClass有没有提供fromName的静态方法，有则方法map，没有报错
-     *
-     */
     @SuppressWarnings("unchecked")
     public static <T extends Enum<T>> T fromName(Class<T> enumClass, String name) {
         if (name == null) return null;
-        if (nameParserMap.containsKey(enumClass.getCanonicalName())) {
-            Function<String, T> function = (Function<String, T>) nameParserMap.get(enumClass.getCanonicalName());
-            if (function == null) throw new IllegalArgumentException("Found no parser for " + enumClass.getCanonicalName());
+        String key = enumClass.getName();
+        if (nameParserMap.containsKey(key)) {
+            Function<String, T> function = (Function<String, T>) nameParserMap.get(key);
+            if (function == NONE_FOR_NAME) throw new IllegalArgumentException("Found no parser for " + key);
             return function.apply(name);
         } else {
-            try {
-                Method method = enumClass.getDeclaredMethod("fromName", name.getClass());
-                Function<String, T> function = (String v) -> {
-                    try {
-                        return (T) (method.invoke(null, v));
-                    } catch (IllegalAccessException | InvocationTargetException e) {
-                        throw new RuntimeException(e);
-                    }
-                };
-                nameParserMap.put(enumClass.getCanonicalName(), function);
-                return function.apply(name);
-            } catch (NoSuchMethodException ignored) {
-                // 空值也要放入map，防止找不到默认方法，反复从反射获取
-                valueParserMap.put(enumClass.getCanonicalName(), null);
-                throw new IllegalArgumentException("Found no parser for " + enumClass.getCanonicalName());
+            Method method = findMethod(enumClass, "fromName", String.class);
+            if (method == null) {
+                nameParserMap.put(key, NONE_FOR_NAME);
+                throw new IllegalArgumentException("Found no parser for " + key);
             }
+            Function<String, T> function = (String v) -> {
+                try {
+                    return (T) (method.invoke(null, v));
+                } catch (IllegalAccessException | InvocationTargetException e) {
+                    throw new RuntimeException(e);
+                }
+            };
+            nameParserMap.put(key, function);
+            return function.apply(name);
         }
     }
 
+    private static Method findMethod(Class<?> enumClass, String name, Class<?> parameterType) {
+        for (Class<?> c = parameterType; c != null && c != Object.class; c = c.getSuperclass()) {
+            try {
+                return enumClass.getDeclaredMethod(name, c);
+            } catch (NoSuchMethodException ignored) {
+            }
+        }
+        try {
+            return enumClass.getDeclaredMethod(name, Object.class);
+        } catch (NoSuchMethodException e) {
+            return null;
+        }
+    }
 
     public static <T extends Enum<T>> void addNameParser(Class<T> enumClass, Function<String, T> parser) {
-        nameParserMap.put(enumClass.getCanonicalName(), parser);
+        nameParserMap.put(enumClass.getName(), parser);
     }
 
     public static <T extends Enum<T>, V> void addValueParser(Class<T> enumClass, Function<V, T> parser) {
-        valueParserMap.put(enumClass.getCanonicalName(), parser);
+        valueParserMap.put(enumClass.getName(), parser);
+    }
+
+    /**
+     * Clears all registered parsers.
+     * <p>Used in test environments or hot-reload scenarios to prevent memory leaks.</p>
+     */
+    public static void clear() {
+        valueParserMap.clear();
+        nameParserMap.clear();
+    }
+
+    /**
+     * Removes the parser of the specified enum.
+     *
+     * @param enumClass the enum class
+     * @return whether the removal succeeded
+     */
+    public static boolean removeParser(Class<? extends Enum<?>> enumClass) {
+        String key = enumClass.getName();
+        boolean removed1 = valueParserMap.remove(key) != null;
+        boolean removed2 = nameParserMap.remove(key) != null;
+        return removed1 || removed2;
     }
 }

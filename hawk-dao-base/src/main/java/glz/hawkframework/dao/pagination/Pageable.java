@@ -19,7 +19,7 @@ package glz.hawkframework.dao.pagination;
 /**
  * This interface is responsible for
  *
- * @author Hawk
+ * @author Zhang Peng
  */
 public interface Pageable {
 

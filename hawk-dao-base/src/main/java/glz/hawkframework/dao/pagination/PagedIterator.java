@@ -19,61 +19,93 @@ package glz.hawkframework.dao.pagination;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.function.Function;
 
 import static glz.hawkframework.core.support.ArgumentSupport.argNotNull;
 
 /**
  * This class is responsible for
- * <p>基于分页查询实现的{@link Iterator}</p>
+ * <p>An {@link Iterator} implemented based on paged queries.</p>
+ * <p>The records returned by {@code pagedRetriever} must strictly go beyond the boundary of the previous page
+ * (for example, {@code where id > lastId order by id limit pageSize}); otherwise the iterator will throw
+ * an {@link IllegalStateException} on the last page or when boundaries repeat, or stop iterating, in order to avoid an infinite loop.</p>
  *
  * @author Zhang Peng
  */
 public class PagedIterator<K, V> implements Iterator<V> {
 
     /**
-     * 用来缓存分页记录
+     * Used to cache paged records.
      */
     private List<V> pagedRecords = new ArrayList<>();
     private int pagedIndex = -1;
+    private int maxPageSize = 0;
+    private boolean lastPageReached = false;
     /**
-     * 用来获取分页记录
+     * Used to retrieve paged records.
      */
     private final Function<K, List<V>> pagedRetriever;
     /**
-     * 用来从记录里获取分页用的比较对象
+     * Used to obtain the comparison object for pagination from a record.
      */
     private final Function<V, K> compareObjectExtractor;
 
     /**
-     * 构造基于分页的迭代器
+     * Constructs a pagination-based iterator.
      *
-     * @param pagedRetriever 用来获取分页记录
-     * @param compareObjectExtractor    用来从记录里获取分页用的比较对象
+     * @param pagedRetriever         used to retrieve paged records
+     * @param compareObjectExtractor    used to obtain the comparison object for pagination from a record
      */
     public PagedIterator(Function<K, List<V>> pagedRetriever, Function<V, K> compareObjectExtractor) {
-        this.pagedRetriever = argNotNull(pagedRetriever,"pagedRetriever");
-        this.compareObjectExtractor = argNotNull(compareObjectExtractor,"compareObjectExtractor");
+        this.pagedRetriever = argNotNull(pagedRetriever, "pagedRetriever");
+        this.compareObjectExtractor = argNotNull(compareObjectExtractor, "compareObjectExtractor");
     }
 
     @Override
     public boolean hasNext() {
-        if (pagedRecords.size() > pagedIndex + 1) {
+        if (pagedIndex + 1 < pagedRecords.size()) {
             return true;
-        } else {
-            pagedRecords = pagedRetriever.apply(getCompareObject());
-            pagedIndex = -1;
-            return !pagedRecords.isEmpty();
         }
+        if (lastPageReached) {
+            return false;
+        }
+        K compareObject = getCompareObject();
+        List<V> nextPage = pagedRetriever.apply(compareObject);
+        if (nextPage == null || nextPage.isEmpty()) {
+            lastPageReached = true;
+            pagedRecords = new ArrayList<>();
+            pagedIndex = -1;
+            return false;
+        }
+        if (maxPageSize > 0 && nextPage.size() < maxPageSize) {
+            // The number of returned records is less than a full page, so this is the last page
+            lastPageReached = true;
+        } else if (isNoProgress(nextPage, compareObject)) {
+            // pagedRetriever did not go beyond the previous boundary, so the query is not strictly monotonic;
+            // continuing to iterate would cause an infinite loop
+            lastPageReached = true;
+        }
+        maxPageSize = Math.max(maxPageSize, nextPage.size());
+        pagedRecords = nextPage;
+        pagedIndex = -1;
+        return true;
     }
 
-    private K getCompareObject(){
-        if (pagedRecords.isEmpty()) return  null;
-        return compareObjectExtractor.apply(pagedRecords.get(pagedRecords.size()-1));
+    private boolean isNoProgress(List<V> nextPage, K requestedCompareObject) {
+        if (requestedCompareObject == null) return false;
+        K lastCompareObject = compareObjectExtractor.apply(nextPage.get(nextPage.size() - 1));
+        return lastCompareObject == null || requestedCompareObject.equals(lastCompareObject);
+    }
+
+    private K getCompareObject() {
+        if (pagedRecords.isEmpty()) return null;
+        return compareObjectExtractor.apply(pagedRecords.get(pagedRecords.size() - 1));
     }
 
     @Override
     public V next() {
+        if (!hasNext()) throw new NoSuchElementException();
         return pagedRecords.get(++pagedIndex);
     }
 }

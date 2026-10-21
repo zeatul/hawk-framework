@@ -19,9 +19,11 @@ package glz.hawkframework.excel.helper;
 import glz.hawkframework.excel.helper.support.Author;
 import glz.hawkframework.excel.helper.support.Book;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.math.BigDecimal;
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -36,17 +38,19 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 public class ExcelHelperTest {
 
+    @TempDir
+    Path tempDir;
+
     @Test
     public void testWriteExcelWithTemplate(){
-        File templateFile = new File("e:/temp/test_template.xlsx");
-        File outputFile = new File("e:/temp/test_out.xlsx");
+        File outputFile = tempDir.resolve("test_out.xlsx").toFile();
         Map<Class<?>,List<?>> excelData = createExcelData();
-        ExcelHelper.writeExcelWithTemplate(templateFile,outputFile,excelData);
+        ExcelHelper.writeExcelWithTemplate("/glz/hawkframework/excel/helper/test.xlsx", outputFile, excelData);
     }
 
     @Test
     public void testWriteExcel(){
-        File outputFile = new File("e:/temp/test_out.xlsx");
+        File outputFile = tempDir.resolve("test_out.xlsx").toFile();
         Map<Class<?>,List<?>> excelData = createExcelData();
         ExcelHelper.writeExcel(outputFile,excelData);
     }
@@ -57,7 +61,6 @@ public class ExcelHelperTest {
 
     @Test
     public void testReadOneSheet() {
-//        File file = new File("e:/temp/test.xlsx");
         List<Book> books = ExcelHelper.readOneSheet("/glz/hawkframework/excel/helper/test.xlsx", Book.class);
         assertThat(books).hasSize(2);
 
@@ -70,7 +73,6 @@ public class ExcelHelperTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testReadSheets() {
-//        File file = new File("e:/temp/test.xlsx");
         Map<Class<?>, List<?>> map = ExcelHelper.readSheets("/glz/hawkframework/excel/helper/test.xlsx", Book.class, Author.class);
         assertThat(map).hasSize(2);
 

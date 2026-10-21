@@ -24,12 +24,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.i18n.LocaleContextHolder;
 
+import javax.validation.ConstraintDeclarationException;
 import javax.validation.ConstraintViolation;
 import javax.validation.Validator;
 import java.util.Locale;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * This class is responsible for
@@ -182,5 +184,15 @@ public class NotNullGroupTest {
         ObjectForAllAreNotNullOrAllAreNull book = new ObjectForAllAreNotNullOrAllAreNull();
         Set<ConstraintViolation<ObjectForAllAreNotNullOrAllAreNull>> set = validator.validate(book);
         assertThat(set).hasSize(0);
+    }
+
+    @Test
+    public void invalidSpELExpression_throwsConstraintDeclarationException() {
+        ObjectForInvalidSpEL obj = new ObjectForInvalidSpEL();
+        obj.setB("value");
+
+        // An invalid SpEL expression is a declaration error, not a data violation.
+        assertThatThrownBy(() -> validator.validate(obj))
+            .isInstanceOf(ConstraintDeclarationException.class);
     }
 }

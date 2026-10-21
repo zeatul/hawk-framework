@@ -11,6 +11,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static glz.hawkframework.core.support.ArgumentSupport.argNotNull;
 import static glz.hawkframework.core.support.ArgumentSupport.argument;
@@ -18,9 +19,10 @@ import static glz.hawkframework.core.support.ArgumentSupport.argument;
 
 /**
  * {@link AbstractSnowflakeIdGenerator} provides a skeletal implementation of well-known snowflake algorithm.
+ * <p>Optimized version: uses CAS (AtomicLong) for lock-free sequence increment, locking only on clock rollback.</p>
  *
  * @author Leavy
- * @author Hawk
+ * @author Zhang Peng
  */
 public abstract class AbstractSnowflakeIdGenerator<T> implements IdGenerator<T> {
 
@@ -43,12 +45,14 @@ public abstract class AbstractSnowflakeIdGenerator<T> implements IdGenerator<T> 
     private long leftShiftBitsForDataCenterId;
     // left shift bits needed for timestamp id part
     private long leftShiftBitsForTimestamp;
-    // current sequence number inner the current millisecond
-    private long currentSequenceOfMillis;
-    // last millisecond used
-    private long lastMillis;
+    // the maximum of timestamp segment
+    private BigInteger maxMillisecondOffset;
     // initial system millis
     private long initialSystemMillis;
+
+    // Use AtomicLong for lock-free concurrency: the high 48 bits store the timestamp, the low 16 bits store the sequence
+    // This allows atomically updating timestamp+sequence with a single CAS operation
+    private final AtomicLong timestampAndSequence = new AtomicLong();
 
     public AbstractSnowflakeIdGenerator(SnowflakeIdConfig config) {
         argNotNull(config, "config");
@@ -75,6 +79,10 @@ public abstract class AbstractSnowflakeIdGenerator<T> implements IdGenerator<T> 
 
         initializeSnowFlakeIdBits();
 
+        // Initialize timestampAndSequence
+        long initialTimestamp = System.currentTimeMillis() - initialSystemMillis;
+        timestampAndSequence.set(initialTimestamp << sequenceBits);
+
         LOG.atInfo().log("SnowflakeIdGenerator basic config: dataCenterId = {}, machineId = {}, initialDateOfSnowflakeId = {}",
             dataCenterId, machineId, initialDateOfSnowflakeId);
         LOG.atInfo().log("SnowflakeIdGenerator advanced config: dataCenterIdBits = {}, machineIdBits = {}, sequenceBits = {}, millisecondBits = {}",
@@ -97,47 +105,73 @@ public abstract class AbstractSnowflakeIdGenerator<T> implements IdGenerator<T> 
         argument(machineId, machineId -> machineId >= 0 && machineId <= maxMachineId,
             machineId -> "machine id should be between 0 and " + maxMachineId);
         maxSequenceInMills = ~(-1L << sequenceBits);
+        maxMillisecondOffset = BigInteger.ONE.shiftLeft((int) millisecondBits).subtract(BigInteger.ONE);
         leftShiftBitsForMachineId = sequenceBits;
         leftShiftBitsForDataCenterId = leftShiftBitsForMachineId + machineIdBits;
         leftShiftBitsForTimestamp = leftShiftBitsForDataCenterId + dataCenterIdBits;
-        currentSequenceOfMillis = 0L;
-        lastMillis = System.currentTimeMillis();
         initialSystemMillis = initialDateOfSnowflakeId.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
     }
 
     @Nonnull
     @Override
-    public synchronized T next() {
-        long currentMillis = System.currentTimeMillis();
-        if (currentMillis == lastMillis) {
-            // increment and compare with maxSequenceInMills, and get 0L if equals to maxSequenceInMills
-            currentSequenceOfMillis = currentSequenceOfMillis + 1;
-            if (currentSequenceOfMillis == maxSequenceInMills) {
-                currentSequenceOfMillis = 0L;
-                // when arrives the max sequence in current millis, borrow an available millisecond from the future
-                while (currentMillis <= lastMillis) {
-                    currentMillis = System.currentTimeMillis();
-                }
+    public T next() {
+        while (true) {
+            long currentMillis = System.currentTimeMillis();
+            long timestampOffset = currentMillis - initialSystemMillis;
+
+            // Check for timestamp overflow
+            if (timestampOffset < 0) {
+                throw new IdGeneratingException("time clock moved back");
             }
-        } else if (currentMillis > lastMillis) {
-            // start with 0 if in a different millisecond
-            currentSequenceOfMillis = 0L;
-        } else {
-            throw new IdGeneratingException("time clock moved back");
+            BigInteger millisecondOffset = BigInteger.valueOf(timestampOffset);
+            if (millisecondOffset.compareTo(maxMillisecondOffset) > 0) {
+                throw new IdGeneratingException("The timestamp segment of the snowflake id has overflowed, the offset from the initial date exceeds the available " + millisecondBits + " bits.");
+            }
+
+            long current = timestampAndSequence.get();
+            long currentTimestamp = current >> sequenceBits;
+            long currentSequence = current & maxSequenceInMills;
+
+            long newTimestamp;
+            long newSequence;
+
+            if (timestampOffset == currentTimestamp) {
+                // Within the same millisecond, try to increment the sequence
+                if (currentSequence >= maxSequenceInMills) {
+                    // The sequence is exhausted; wait for the next millisecond
+                    // Use a spin wait to avoid long blocking
+                    continue;
+                }
+                newTimestamp = currentTimestamp;
+                newSequence = currentSequence + 1;
+            } else if (timestampOffset > currentTimestamp) {
+                // New millisecond, reset the sequence to 0
+                newTimestamp = timestampOffset;
+                newSequence = 0;
+            } else {
+                // timestampOffset < currentTimestamp: another thread has already advanced the timestamp, the local clock lags slightly
+                // Do not throw; just retry (spin), to avoid false "clock rollback" during multithreaded contention
+                continue;
+            }
+
+            long newValue = (newTimestamp << sequenceBits) | newSequence;
+            if (timestampAndSequence.compareAndSet(current, newValue)) {
+                // CAS succeeded, build the ID
+                BigInteger b = millisecondOffset.shiftLeft((int) leftShiftBitsForTimestamp) // timestamp segment
+                    .or(BigInteger.valueOf(dataCenterId).shiftLeft((int) leftShiftBitsForDataCenterId))// data center id segment
+                    .or(BigInteger.valueOf(machineId).shiftLeft((int) leftShiftBitsForMachineId))// machine id segment
+                    .or(BigInteger.valueOf(newSequence));// sequence segment
+                return convert(b);
+            }
+            // CAS failed, retry
         }
-        lastMillis = currentMillis;
-        BigInteger b = BigInteger.valueOf((currentMillis - initialSystemMillis)).shiftLeft((int) leftShiftBitsForTimestamp) // timestamp segment
-            .or(BigInteger.valueOf(dataCenterId).shiftLeft((int) leftShiftBitsForDataCenterId))// data center id segment
-            .or(BigInteger.valueOf(machineId).shiftLeft((int) leftShiftBitsForMachineId))// machine id segment
-            .or(BigInteger.valueOf(currentSequenceOfMillis));// sequence segment
-        return convert(b);
     }
 
     protected abstract T convert(BigInteger b);
 
     @Nonnull
     @Override
-    public synchronized List<T> next(int count) {
+    public List<T> next(int count) {
         argument(count, c -> c > 0, c -> "count should be greater than 0");
         List<T> idList = new ArrayList<>(count);
         for (int i = 0; i < count; i++) {
